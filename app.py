@@ -458,5 +458,10 @@ def clear_history():
     session['chat_history'] = []
     return jsonify({'status': 'success'})
 
+@app.route('/static/images/<path:filename>')
+def serve_static_images(filename):
+    """Serve static images."""
+    return send_from_directory(os.path.join(app.root_path, 'static', 'images'), filename)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
