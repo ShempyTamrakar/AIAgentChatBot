@@ -58,29 +58,59 @@
             box-shadow: 0 6px 16px rgba(41, 64, 185, 0.4);
         }
         
+        /* Robot face elements */
         .chat-bubble::before {
             content: '';
             position: absolute;
-            width: 24px;
-            height: 24px;
-            background-color: transparent;
-            border: 2px solid white;
-            border-radius: 50%;
-            top: 50%;
+            width: 30px;
+            height: 18px;
+            background-color: #ffffff;
+            border-radius: 4px;
+            top: 22px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
         }
         
         .chat-bubble::after {
             content: '';
             position: absolute;
-            width: 10px;
+            width: 36px;
             height: 10px;
-            background-color: white;
-            border-radius: 2px;
-            bottom: 13px;
-            right: 12px;
-            transform: rotate(45deg);
+            background-color: #ffffff;
+            border-radius: 4px;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 -14px 0 #ffffff;
+        }
+        
+        /* Robot eyes */
+        .chat-bubble .robot-eye-left,
+        .chat-bubble .robot-eye-right {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #2940b9;
+            border-radius: 50%;
+            top: 26px;
+            animation: blink 3s infinite;
+        }
+        
+        .chat-bubble .robot-eye-left {
+            left: 19px;
+        }
+        
+        .chat-bubble .robot-eye-right {
+            right: 19px;
+        }
+        
+        @keyframes blink {
+            0%, 45%, 55%, 100% {
+                transform: scaleY(1);
+            }
+            50% {
+                transform: scaleY(0.1);
+            }
         }
         
         .chat-popup {
@@ -119,11 +149,62 @@
             align-items: center;
         }
         
-        .avatar-container img {
+        /* Robot avatar in header */
+        .robot-avatar {
             width: 30px;
             height: 30px;
+            background: linear-gradient(135deg, #4d7bf3, #2940b9);
             border-radius: 50%;
+            position: relative;
             margin-right: 10px;
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .robot-avatar::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 2px;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .robot-avatar::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 4px;
+            background-color: #ffffff;
+            border-radius: 2px;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 -6px 0 #ffffff;
+        }
+        
+        .robot-avatar .robot-eye-left.small,
+        .robot-avatar .robot-eye-right.small {
+            width: 4px;
+            height: 4px;
+            background-color: #2940b9;
+            border-radius: 50%;
+            position: absolute;
+            top: 11px;
+            animation: blink 3s infinite;
+        }
+        
+        .robot-avatar .robot-eye-left.small {
+            left: 8px;
+        }
+        
+        .robot-avatar .robot-eye-right.small {
+            right: 8px;
         }
         
         .close-chat {
@@ -403,13 +484,18 @@
     </div>
     
     <div class="chat-bubble" id="chatButton">
-        <!-- Chat icon created with CSS -->
+        <!-- Robot eyes -->
+        <div class="robot-eye-left"></div>
+        <div class="robot-eye-right"></div>
     </div>
     
     <div class="chat-popup" id="chatPopup">
         <div class="chat-popup-header">
             <div class="avatar-container">
-                <img src="https://t4.ftcdn.net/jpg/02/29/75/83/360_F_229758328_7x8jwCwjtBMmC6rgFzLFhZoEpLobB6L8.jpg" alt="AI Assistant">
+                <div class="robot-avatar">
+                    <div class="robot-eye-left small"></div>
+                    <div class="robot-eye-right small"></div>
+                </div>
                 <h3>Data Center AI</h3>
             </div>
             <button class="close-chat" id="closeChat">✕</button>
