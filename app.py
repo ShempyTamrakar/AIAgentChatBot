@@ -86,7 +86,7 @@ class DataCenterChatbot:
                 return response
             
             # How many data centers are in each country?
-            if "each country" in user_input or "by country" in user_input or "per country" in user_input:
+            if ("data centers" in user_input and "country" in user_input) or ("data center" in user_input and "country" in user_input):
                 results = self.execute_query("""
                     SELECT l.country, COUNT(dc.data_center_id) as dc_count
                     FROM locations l
@@ -334,7 +334,7 @@ class DataCenterChatbot:
             # =================== Join-Based Analytical Questions ===================
             
             # Find the total number of servers in each country
-            if ("servers" in user_input and "country" in user_input) or "server count by country" in user_input:
+            if ("servers" in user_input and "country" in user_input and "data center" not in user_input) or "server count by country" in user_input or "how many servers per country" in user_input:
                 results = self.execute_query("""
                     SELECT l.country, COUNT(s.server_id) as server_count
                     FROM locations l
