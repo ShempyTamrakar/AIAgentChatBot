@@ -30,6 +30,60 @@ class DataCenterChatbot:
         self.schema_info = self.db_manager.get_schema_info()
         logger.info("Data Center Chatbot initialized with database connection")
     
+    def format_as_markdown_table(self, data, headers=None):
+        """
+        Format data as a well-structured markdown table.
+        
+        Args:
+            data (list): List of dictionaries with data
+            headers (list, optional): Custom headers to use. If None, use dict keys
+            
+        Returns:
+            str: Formatted HTML table
+        """
+        if not data:
+            return "No data available."
+        
+        # Handle empty dataset
+        if len(data) == 0:
+            return "No data available."
+            
+        # Use provided headers or extract from the first data row
+        if not headers:
+            headers = list(data[0].keys())
+        
+        # Create HTML table with proper structure and styling
+        html_table = "<table class='data-table'>\n"
+        
+        # Add header row
+        html_table += "  <thead>\n    <tr>\n"
+        for header in headers:
+            # Clean and capitalize header
+            display_header = header.replace('_', ' ').title()
+            html_table += f"      <th>{display_header}</th>\n"
+        html_table += "    </tr>\n  </thead>\n"
+        
+        # Add data rows
+        html_table += "  <tbody>\n"
+        for row in data:
+            html_table += "    <tr>\n"
+            for header in headers:
+                value = row.get(header, "")
+                # Convert None to empty string for display
+                if value is None:
+                    value = ""
+                # Format numeric values
+                if isinstance(value, (int, float)):
+                    if isinstance(value, float):
+                        value = f"{value:.2f}" if value != int(value) else f"{int(value)}"
+                
+                html_table += f"      <td>{value}</td>\n"
+            html_table += "    </tr>\n"
+        html_table += "  </tbody>\n"
+        html_table += "</table>"
+        
+        return html_table
+    
     def get_schema_info(self):
         """Get database schema information."""
         return self.schema_info
@@ -99,10 +153,10 @@ class DataCenterChatbot:
                 
                 # Format as a table for better display
                 response = "Here is the count of data centers in each country:\n\n"
-                response += "| Country | Number of Data Centers |\n"
-                response += "|---------|------------------------|\n"
-                for res in results:
-                    response += f"| {res['country']} | {res['dc_count']} |\n"
+                custom_headers = ["Country", "Number of Data Centers"]
+                table = self.format_as_markdown_table(results, 
+                                                     headers=custom_headers)
+                response += table
                 return response
             
             # List all data centers along with their corresponding city and country
@@ -138,10 +192,10 @@ class DataCenterChatbot:
                 
                 # Format as a table for better display
                 response = "Here is the number of racks in each data center:\n\n"
-                response += "| Data Center | Number of Racks |\n"
-                response += "|-------------|----------------|\n"
-                for res in results:
-                    response += f"| {res['data_center']} | {res['rack_count']} |\n"
+                custom_headers = ["Data Center", "Number of Racks"]
+                table = self.format_as_markdown_table(results, 
+                                                     headers=custom_headers)
+                response += table
                 return response
             
             # List all servers along with their rack label and data center name
@@ -309,10 +363,10 @@ class DataCenterChatbot:
                 
                 # Format as a nice table
                 response = "Here are the servers that had maintenance in 2023:\n\n"
-                response += "| Server | IP Address | Maintenance Date | Performed By | Notes |\n"
-                response += "|--------|-----------|-----------------|--------------|-------|\n"
-                for res in results:
-                    response += f"| {res['hostname']} | {res['ip_address']} | {res['maintenance_date']} | {res['performed_by']} | {res['notes']} |\n"
+                custom_headers = ["Server", "IP Address", "Maintenance Date", "Performed By", "Notes"]
+                table = self.format_as_markdown_table(results, 
+                                                     headers=custom_headers)
+                response += table
                 return response
             
             # List all maintenance logs with the corresponding server or device name
@@ -356,10 +410,10 @@ class DataCenterChatbot:
                 
                 # Format as a nice table
                 response = "Here is the total number of servers in each country:\n\n"
-                response += "| Country | Number of Servers |\n"
-                response += "|---------|------------------|\n"
-                for res in results:
-                    response += f"| {res['country']} | {res['server_count']} |\n"
+                custom_headers = ["Country", "Number of Servers"] 
+                table = self.format_as_markdown_table(results, 
+                                                     headers=custom_headers)
+                response += table
                 return response
             
             # Which data centers have both servers and network devices?
@@ -382,11 +436,21 @@ class DataCenterChatbot:
                 
                 # Format as a nice table
                 response = "Here are the data centers that have both servers and network devices:\n\n"
-                response += "| Data Center | Location | Servers | Network Devices |\n"
-                response += "|-------------|----------|---------|----------------|\n"
+                
+                # Create a modified results list with the location combined into one field
+                formatted_results = []
                 for res in results:
-                    location = f"{res['city']}, {res['country']}"
-                    response += f"| {res['data_center']} | {location} | {res['server_count']} | {res['network_device_count']} |\n"
+                    formatted_res = res.copy()
+                    formatted_res['location'] = f"{res['city']}, {res['country']}"
+                    # Remove the individual city and country fields
+                    del formatted_res['city']
+                    del formatted_res['country']
+                    formatted_results.append(formatted_res)
+                
+                custom_headers = ["Data Center", "Location", "Servers", "Network Devices"]
+                table = self.format_as_markdown_table(formatted_results, 
+                                                     headers=custom_headers)
+                response += table
                 return response
             
             # Which server had the most recent maintenance performed?

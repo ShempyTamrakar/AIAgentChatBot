@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>Yondr Data Center Chatbot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
@@ -16,8 +16,13 @@
         }
         
         html, body {
-            overflow-x: hidden;
-            max-width: 100%;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            max-width: 100vw; /* Ensure content doesn't exceed viewport width */
+            box-sizing: border-box; /* Include padding and border in element width */
+        }
+        
+        *, *:before, *:after {
+            box-sizing: inherit; /* Ensure all elements inherit box-sizing */
         }
         
         body {
@@ -28,6 +33,9 @@
             font-family: Arial, sans-serif;
             position: relative;
             color: var(--yondr-dark-gray);
+            padding: 0;
+            margin: 0;
+            width: 100%;
         }
         
         .container {
@@ -35,6 +43,9 @@
             margin-top: 0;
             margin-bottom: 2rem;
             padding-bottom: 80px; /* Space for chatbot button */
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         .main-content {
@@ -111,6 +122,24 @@
             z-index: 1001;
             flex-direction: column;
             max-height: 70vh;
+        }
+        
+        /* Responsive adjustments for the chat popup */
+        @media (max-width: 768px) {
+            .chat-popup {
+                width: calc(100% - 40px); /* Full width minus some margins */
+                bottom: 80px;
+                right: 20px;
+                left: 20px;
+                max-height: 80vh;
+            }
+            
+            .examples-dropdown {
+                width: calc(100% - 40px);
+                right: 20px;
+                left: 20px;
+                bottom: calc(80px + 80px); /* Above the chat popup */
+            }
         }
         
         .chat-popup-header {
@@ -350,8 +379,8 @@
         /* Examples dropdown */
         .examples-dropdown {
             position: fixed;
-            bottom: 70px;
-            left: 20px;
+            bottom: 130px; /* Positioned directly above the button */
+            right: 20px; /* Aligned with the button */
             width: 300px;
             background-color: var(--yondr-white);
             border-radius: 8px;
@@ -1731,7 +1760,7 @@
             let speechSynthesis = window.speechSynthesis;
             let voiceSpeaking = false;
             
-            // Function to speak text using speech synthesis
+            // Function to speak text using speech synthesis with user interaction
             function speakText(text) {
                 // Check if speech synthesis is available
                 if ('speechSynthesis' in window) {
@@ -1743,6 +1772,9 @@
                     voiceStatusText.innerHTML = 'Talking <span class="talking-dot"></span><span class="talking-dot"></span><span class="talking-dot"></span>';
                     voiceStatusText.classList.add('talking');
                     
+                    // Log to help diagnose issues
+                    console.log("Attempting to speak:", text.substring(0, 50) + "...");
+                    
                     // Create a new SpeechSynthesisUtterance
                     const utterance = new SpeechSynthesisUtterance(text);
                     
@@ -1752,20 +1784,50 @@
                     utterance.pitch = 1.0; // 0 to 2
                     utterance.lang = 'en-US';
                     
-                    // Get available voices and set a good English voice if available
-                    let voices = speechSynthesis.getVoices();
-                    if (voices.length === 0) {
-                        // Chrome needs to wait for the voiceschanged event
-                        speechSynthesis.addEventListener('voiceschanged', function() {
-                            voices = speechSynthesis.getVoices();
-                            setVoice();
-                        });
-                    } else {
-                        setVoice();
+                    // Handle voice loading more consistently across browsers
+                    // Some browsers load voices synchronously, others asynchronously
+                    let voices = [];
+                    
+                    function loadVoicesAndSpeak() {
+                        voices = window.speechSynthesis.getVoices();
+                        console.log("Available voices:", voices.length);
+                        
+                        // Select and set voice if available
+                        let selectedVoice = selectVoice(voices);
+                        if (selectedVoice) {
+                            utterance.voice = selectedVoice;
+                            console.log("Set voice to:", selectedVoice.name);
+                        } else {
+                            console.log("No suitable voice found");
+                        }
+                        
+                        // Start speaking
+                        startSpeaking(utterance);
                     }
                     
-                    function setVoice() {
-                        // Look for a good English voice
+                    // Compatibility check - Chrome requires the onvoiceschanged event
+                    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                        // For browsers that load voices asynchronously (like Chrome)
+                        window.speechSynthesis.onvoiceschanged = loadVoicesAndSpeak;
+                        
+                        // Also attempt to get voices immediately (in case they're already loaded)
+                        voices = window.speechSynthesis.getVoices();
+                        if (voices.length > 0) {
+                            console.log("Voices already loaded:", voices.length);
+                            loadVoicesAndSpeak();
+                        }
+                    } else {
+                        // For browsers that load voices synchronously (like Firefox)
+                        loadVoicesAndSpeak();
+                    }
+                    
+                    function selectVoice(voices) {
+                        // Log all voices to debug
+                        voices.forEach((v, i) => {
+                            console.log(`Voice ${i}: ${v.name} (${v.lang})`);
+                        });
+                        
+                        // First try to find specific good voices
                         let voice = voices.find(v => 
                             v.name.includes('Google') && v.name.includes('English') ||
                             v.name.includes('Microsoft') && v.name.includes('David') ||
@@ -1778,54 +1840,113 @@
                             voice = voices.find(v => v.lang.includes('en-'));
                         }
                         
-                        // Set the voice if found
-                        if (voice) {
-                            utterance.voice = voice;
+                        // If still no voice, use the default (first) voice
+                        if (!voice && voices.length > 0) {
+                            voice = voices[0];
                         }
+                        
+                        console.log("Selected voice:", voice ? voice.name : "None available");
+                        return voice;
                     }
                     
-                    // When the speech starts
-                    utterance.onstart = function() {
-                        voiceSpeaking = true;
-                        console.log('Speech started');
-                        // Make sure animation is active
-                        voiceAnimationOuter.classList.add('voice-animation-active');
-                    };
-                    
-                    // When the speech ends
-                    utterance.onend = function() {
-                        voiceSpeaking = false;
-                        console.log('Speech ended');
-                        // End animation
-                        voiceAnimationOuter.classList.remove('voice-animation-active');
-                        voiceStatusText.textContent = 'Ready to listen';
-                        voiceStatusText.classList.remove('talking');
-                    };
-                    
-                    // Speak the text
-                    try {
-                        speechSynthesis.speak(utterance);
-                        console.log("Started speaking");
+                    function startSpeaking(utterance) {
+                        console.log("Starting speech...");
                         
-                        // In case the speech doesn't start, set a timeout to reset the UI
+                        // Reset speech synthesis to clear any previous state
+                        window.speechSynthesis.cancel();
+                        
+                        // Set up event handlers
+                        utterance.onstart = function(event) {
+                            voiceSpeaking = true;
+                            console.log('Speech started successfully', event);
+                            // Make sure animation is active
+                            voiceAnimationOuter.classList.add('voice-animation-active');
+                        };
+                        
+                        utterance.onend = function(event) {
+                            voiceSpeaking = false;
+                            console.log('Speech ended', event);
+                            // End animation
+                            voiceAnimationOuter.classList.remove('voice-animation-active');
+                            voiceStatusText.textContent = 'Ready to listen';
+                            voiceStatusText.classList.remove('talking');
+                        };
+                        
+                        utterance.onerror = function(event) {
+                            console.error('Speech error:', event);
+                            voiceSpeaking = false;
+                            voiceAnimationOuter.classList.remove('voice-animation-active');
+                            voiceStatusText.textContent = 'Speech error';
+                            voiceStatusText.classList.remove('talking');
+                            
+                            // Try to recover from error
+                            window.speechSynthesis.cancel();
+                        };
+                        
+                        // Try to speak with a small delay to ensure the browser is ready
                         setTimeout(function() {
-                            if (!voiceSpeaking) {
+                            try {
+                                // Ensure page visibility state is considered
+                                if (document.visibilityState === 'visible') {
+                                    console.log("Page is visible, speaking now");
+                                    window.speechSynthesis.speak(utterance);
+                                    console.log("Speech synthesis initiated");
+                                } else {
+                                    console.log("Page is not visible, requesting user interaction first");
+                                    document.addEventListener('visibilitychange', function speakOnceVisible() {
+                                        if (document.visibilityState === 'visible') {
+                                            window.speechSynthesis.speak(utterance);
+                                            document.removeEventListener('visibilitychange', speakOnceVisible);
+                                        }
+                                    });
+                                }
+                                
+                                // Workaround for speech synthesis issues in various browsers
+                                let resumeInterval;
+                                
+                                // Function to periodically resume speech to prevent it from stopping
+                                function keepSpeechAlive() {
+                                    // Check if synthesis is still active
+                                    if (window.speechSynthesis.speaking) {
+                                        console.log("Keeping speech alive...");
+                                        window.speechSynthesis.pause();
+                                        window.speechSynthesis.resume();
+                                    } else {
+                                        // Speech has finished naturally, clean up
+                                        clearInterval(resumeInterval);
+                                        console.log("Speech completed, stopping keep-alive interval");
+                                    }
+                                }
+                                
+                                // Start the keep-alive interval
+                                resumeInterval = setInterval(keepSpeechAlive, 5000);
+                                
+                                // Clear the interval when speech ends
+                                utterance.onend = function(event) {
+                                    clearInterval(resumeInterval);
+                                    voiceSpeaking = false;
+                                    console.log('Speech ended successfully', event);
+                                    voiceAnimationOuter.classList.remove('voice-animation-active');
+                                    voiceStatusText.textContent = 'Ready to listen';
+                                    voiceStatusText.classList.remove('talking');
+                                };
+                                
+                            } catch (e) {
+                                console.error("Speech synthesis error:", e);
                                 voiceAnimationOuter.classList.remove('voice-animation-active');
-                                voiceStatusText.textContent = 'Ready to listen';
+                                voiceStatusText.textContent = 'Speech not available';
                                 voiceStatusText.classList.remove('talking');
+                                
+                                // Fallback message with more helpful information
+                                alert("Speech synthesis couldn't start. This may be due to browser restrictions or privacy settings. Try the following: 1) Click on the page first, 2) Make sure your browser allows audio playback, 3) Press the speak button again.");
                             }
-                        }, 1000);
-                        
-                        return true;
-                    } catch (e) {
-                        console.error("Speech synthesis error:", e);
-                        voiceAnimationOuter.classList.remove('voice-animation-active');
-                        voiceStatusText.textContent = 'Speech error';
-                        voiceStatusText.classList.remove('talking');
-                        return false;
+                        }, 100);
                     }
+                    
+                    return true;
                 } else {
-                    console.error('Speech synthesis not supported');
+                    console.error('Speech synthesis not supported in this browser');
+                    alert("Speech synthesis is not supported in your browser.");
                     return false;
                 }
             }
