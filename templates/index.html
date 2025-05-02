@@ -891,12 +891,14 @@
         /* Table styling */
         .yondr-data-table {
             width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 0.9em;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            font-size: 0.95em;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: white;
         }
         
         .yondr-data-table thead tr {
@@ -904,17 +906,26 @@
             color: #ffffff;
             text-align: left;
             font-weight: bold;
+            letter-spacing: 0.5px;
         }
         
         .yondr-data-table th,
         .yondr-data-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #dddddd;
-            white-space: nowrap;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .yondr-data-table th {
+            border-bottom: 2px solid #c83a10;
         }
         
         .yondr-data-table tbody tr {
             transition: background-color 0.3s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .yondr-data-table tbody tr:last-child td {
+            border-bottom: none;
         }
         
         .yondr-data-table tbody tr:nth-of-type(even) {
@@ -922,7 +933,21 @@
         }
         
         .yondr-data-table tbody tr:hover {
-            background-color: #f1f1f1;
+            background-color: #f0f4f8;
+        }
+        
+        /* Force table width to 100% */
+        table.yondr-data-table {
+            table-layout: fixed;
+            width: 100% !important;
+        }
+        
+        /* Set column widths */
+        .yondr-data-table th,
+        .yondr-data-table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
         }
         
         /* Make tables responsive */
@@ -930,8 +955,29 @@
             .yondr-data-table {
                 display: block;
                 overflow-x: auto;
+            }
+            
+            .yondr-data-table th,
+            .yondr-data-table td {
                 white-space: nowrap;
             }
+        }
+        
+        /* Style for bot messages containing tables */
+        .bot-message .yondr-data-table {
+            max-width: 100%;
+            margin: 12px 0;
+        }
+        
+        /* For text-based tables in bot messages */
+        .bot-message pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
         }
     </style>
 </head>
@@ -1305,7 +1351,8 @@
             
             // Convert a text table to HTML table
             function convertToHtmlTable(tableLines) {
-                let html = '<table class="yondr-data-table">';
+                console.log("Converting to HTML table:", tableLines);
+                let html = '<div class="table-responsive"><table class="yondr-data-table">';
                 let hasHeader = false;
                 
                 // Check if there's a separator line to determine if there's a header
@@ -1339,7 +1386,12 @@
                         }
                         html += '<tr>';
                         cells.forEach(cell => {
-                            html += `<td>${cell}</td>`;
+                            // Format numbers in cells
+                            if (!isNaN(cell) && !cell.includes(' ')) {
+                                html += `<td class="text-right">${cell}</td>`;
+                            } else {
+                                html += `<td>${cell}</td>`;
+                            }
                         });
                         html += '</tr>';
                     }
@@ -1347,7 +1399,7 @@
                     rowIndex++;
                 }
                 
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
                 return html;
             }
             
@@ -1474,28 +1526,62 @@
                 return allFound;
             }
             
-            // Switch between chat and voice interfaces
-            chatTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (!checkElements()) return;
+            // Switch to text chat interface
+            function switchToTextChat() {
+                if (!checkElements()) {
+                    console.error("Elements not found for switching to text chat");
+                    return;
+                }
                 
                 chatTab.classList.add('active');
                 voiceTab.classList.remove('active');
                 textChatInterface.classList.add('active');
                 voiceChatInterface.classList.remove('active');
                 console.log('Switched to text chat');
-            });
+                
+                // Cancel any ongoing speech
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+            }
             
-            voiceTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (!checkElements()) return;
+            // Switch to voice chat interface
+            function switchToVoiceChat() {
+                if (!checkElements()) {
+                    console.error("Elements not found for switching to voice chat");
+                    return;
+                }
                 
                 voiceTab.classList.add('active');
                 chatTab.classList.remove('active');
                 voiceChatInterface.classList.add('active');
                 textChatInterface.classList.remove('active');
                 console.log('Switched to voice chat');
+            }
+            
+            // Event listeners for tab switching
+            chatTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToTextChat();
             });
+            
+            voiceTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchToVoiceChat();
+            });
+            
+            // Ensure tabs are working by adding redundant event listeners
+            document.getElementById('chat-tab').onclick = function(e) {
+                e.preventDefault();
+                switchToTextChat();
+                return false;
+            };
+            
+            document.getElementById('voice-tab').onclick = function(e) {
+                e.preventDefault();
+                switchToVoiceChat();
+                return false;
+            };
             
             // Voice recognition variables
             let recognition;
@@ -1613,7 +1699,84 @@
                 sendMessage(message);
             }
             
-            // Add bot's voice response with animation
+            // Voice synthesis functionality
+            let speechSynthesis = window.speechSynthesis;
+            let voiceSpeaking = false;
+            
+            // Function to speak text using speech synthesis
+            function speakText(text) {
+                // Check if speech synthesis is available
+                if ('speechSynthesis' in window) {
+                    // Cancel any ongoing speech
+                    speechSynthesis.cancel();
+                    
+                    // Create a new SpeechSynthesisUtterance
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    
+                    // Configure the utterance
+                    utterance.volume = 1; // 0 to 1
+                    utterance.rate = 1.0; // 0.1 to 10
+                    utterance.pitch = 1.0; // 0 to 2
+                    utterance.lang = 'en-US';
+                    
+                    // Get available voices and set a good English voice if available
+                    let voices = speechSynthesis.getVoices();
+                    if (voices.length === 0) {
+                        // Chrome needs to wait for the voiceschanged event
+                        speechSynthesis.addEventListener('voiceschanged', function() {
+                            voices = speechSynthesis.getVoices();
+                            setVoice();
+                        });
+                    } else {
+                        setVoice();
+                    }
+                    
+                    function setVoice() {
+                        // Look for a good English voice
+                        let voice = voices.find(v => 
+                            v.name.includes('Google') && v.name.includes('English') ||
+                            v.name.includes('Microsoft') && v.name.includes('David') ||
+                            v.name.includes('Samantha') ||
+                            v.name.includes('Daniel')
+                        );
+                        
+                        // If no specific voice found, use the first English voice
+                        if (!voice) {
+                            voice = voices.find(v => v.lang.includes('en-'));
+                        }
+                        
+                        // Set the voice if found
+                        if (voice) {
+                            utterance.voice = voice;
+                        }
+                    }
+                    
+                    // When the speech starts
+                    utterance.onstart = function() {
+                        voiceSpeaking = true;
+                        console.log('Speech started');
+                    };
+                    
+                    // When the speech ends
+                    utterance.onend = function() {
+                        voiceSpeaking = false;
+                        console.log('Speech ended');
+                        // End animation
+                        voiceAnimationOuter.classList.remove('voice-animation-active');
+                        voiceStatusText.textContent = 'Ready to listen';
+                        voiceStatusText.classList.remove('talking');
+                    };
+                    
+                    // Speak the text
+                    speechSynthesis.speak(utterance);
+                    return true;
+                } else {
+                    console.error('Speech synthesis not supported');
+                    return false;
+                }
+            }
+            
+            // Add bot's voice response with animation and speech
             function addVoiceResponse(message) {
                 // Start the animation
                 voiceAnimationOuter.classList.add('voice-animation-active');
@@ -1633,16 +1796,27 @@
                 voiceMessages.appendChild(botMessageDiv);
                 voiceMessages.scrollTop = voiceMessages.scrollHeight;
                 
-                // Simulate the time it would take to read the message
-                // We'll use 100ms per character as an approximation
-                const speakingTime = Math.max(2000, message.length * 40);
+                // Extract text only content from the message for speech
+                const textToSpeak = message.replace(/<table[^>]*>[\s\S]*?<\/table>/gi, 'I found a data table with the information you requested.')
+                                           .replace(/<[^>]*>/g, ' ')
+                                           .replace(/\s+/g, ' ')
+                                           .trim();
                 
-                // After the "speaking" time, stop the animation
-                setTimeout(function() {
-                    voiceAnimationOuter.classList.remove('voice-animation-active');
-                    voiceStatusText.textContent = 'Ready to listen';
-                    voiceStatusText.classList.remove('talking');
-                }, speakingTime);
+                // Speak the text
+                const speechSuccess = speakText(textToSpeak);
+                
+                // If speech synthesis fails, simulate the speaking time
+                if (!speechSuccess) {
+                    // We'll use 100ms per character as an approximation
+                    const speakingTime = Math.max(2000, message.length * 40);
+                    
+                    // After the "speaking" time, stop the animation
+                    setTimeout(function() {
+                        voiceAnimationOuter.classList.remove('voice-animation-active');
+                        voiceStatusText.textContent = 'Ready to listen';
+                        voiceStatusText.classList.remove('talking');
+                    }, speakingTime);
+                }
             }
         });
     </script>
