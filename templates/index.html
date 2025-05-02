@@ -562,13 +562,13 @@
     </div>
     
     <div class="chat-bubble" id="chatButton">
-        <img src="/static/images/yondr_robot.png" alt="AI Robot Assistant" class="robot-icon">
+        <img src="/static/images/yondr_robot.png?v=1" alt="AI Robot Assistant" class="robot-icon">
     </div>
     
     <div class="chat-popup" id="chatPopup">
         <div class="chat-popup-header">
             <div class="avatar-container">
-                <img src="/static/images/yondr_robot.png" alt="AI Robot Assistant" class="robot-avatar-small">
+                <img src="/static/images/yondr_robot.png?v=1" alt="AI Robot Assistant" class="robot-avatar-small">
                 <h3>YONDR Data Center AI</h3>
             </div>
             <button class="close-chat" id="closeChat">✕</button>
@@ -653,6 +653,16 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Force image reload
+            const robotImages = document.querySelectorAll('img[src*="yondr_robot.png"]');
+            robotImages.forEach(img => {
+                const currentSrc = img.src;
+                img.src = '';
+                setTimeout(() => {
+                    img.src = currentSrc + '&t=' + new Date().getTime();
+                }, 50);
+            });
+            
             const chatButton = document.getElementById('chatButton');
             const chatPopup = document.getElementById('chatPopup');
             const closeChat = document.getElementById('closeChat');
