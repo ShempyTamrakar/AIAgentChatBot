@@ -887,6 +887,52 @@
             transform: translateY(-50%);
             color: var(--yondr-orange);
         }
+        
+        /* Table styling */
+        .yondr-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .yondr-data-table thead tr {
+            background-color: var(--yondr-orange);
+            color: #ffffff;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .yondr-data-table th,
+        .yondr-data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dddddd;
+            white-space: nowrap;
+        }
+        
+        .yondr-data-table tbody tr {
+            transition: background-color 0.3s;
+        }
+        
+        .yondr-data-table tbody tr:nth-of-type(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .yondr-data-table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+        
+        /* Make tables responsive */
+        @media screen and (max-width: 768px) {
+            .yondr-data-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1259,30 +1305,49 @@
             
             // Convert a text table to HTML table
             function convertToHtmlTable(tableLines) {
-                let html = '<table>';
+                let html = '<table class="yondr-data-table">';
+                let hasHeader = false;
                 
-                // Process header
-                const headerCells = tableLines[0].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-                html += '<tr>';
-                headerCells.forEach(cell => {
-                    html += `<th>${cell}</th>`;
-                });
-                html += '</tr>';
+                // Check if there's a separator line to determine if there's a header
+                for (let i = 0; i < tableLines.length; i++) {
+                    if (tableLines[i].replace(/[\-|]+/g, '') === '') {
+                        hasHeader = true;
+                        break;
+                    }
+                }
                 
-                // Process data rows (skip header)
-                for (let i = 1; i < tableLines.length; i++) {
+                // Process table rows
+                let rowIndex = 0;
+                
+                for (let i = 0; i < tableLines.length; i++) {
                     // Skip separator line if it exists (e.g., |------|------|)
                     if (tableLines[i].replace(/[\-|]+/g, '') === '') continue;
                     
                     const cells = tableLines[i].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-                    html += '<tr>';
-                    cells.forEach(cell => {
-                        html += `<td>${cell}</td>`;
-                    });
-                    html += '</tr>';
+                    
+                    // If this is the first row and we have a header separator, it's a header row
+                    if (rowIndex === 0 && hasHeader) {
+                        html += '<thead><tr>';
+                        cells.forEach(cell => {
+                            html += `<th>${cell}</th>`;
+                        });
+                        html += '</tr></thead><tbody>';
+                    } else {
+                        // If it's the first row and we don't have a header, start the tbody
+                        if (rowIndex === 0) {
+                            html += '<tbody>';
+                        }
+                        html += '<tr>';
+                        cells.forEach(cell => {
+                            html += `<td>${cell}</td>`;
+                        });
+                        html += '</tr>';
+                    }
+                    
+                    rowIndex++;
                 }
                 
-                html += '</table>';
+                html += '</tbody></table>';
                 return html;
             }
             

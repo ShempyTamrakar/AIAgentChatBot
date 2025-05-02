@@ -354,9 +354,12 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find information about server counts by country."
                 
+                # Format as a nice table
                 response = "Here is the total number of servers in each country:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['country']}: {res['server_count']} server(s)\n"
+                response += "| Country | Number of Servers |\n"
+                response += "|---------|------------------|\n"
+                for res in results:
+                    response += f"| {res['country']} | {res['server_count']} |\n"
                 return response
             
             # Which data centers have both servers and network devices?
@@ -377,10 +380,13 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find any data centers that have both servers and network devices."
                 
+                # Format as a nice table
                 response = "Here are the data centers that have both servers and network devices:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['data_center']} in {res['city']}, {res['country']}\n"
-                    response += f"   Servers: {res['server_count']}, Network Devices: {res['network_device_count']}\n\n"
+                response += "| Data Center | Location | Servers | Network Devices |\n"
+                response += "|-------------|----------|---------|----------------|\n"
+                for res in results:
+                    location = f"{res['city']}, {res['country']}"
+                    response += f"| {res['data_center']} | {location} | {res['server_count']} | {res['network_device_count']} |\n"
                 return response
             
             # Which server had the most recent maintenance performed?
