@@ -637,6 +637,13 @@
             color: white;
         }
         
+        .speak-button {
+            background-color: #4a90e2;
+            color: white;
+            margin-left: 10px;
+            font-size: 18px;
+        }
+        
         .voice-messages {
             padding: 15px;
             overflow-y: auto;
@@ -1124,6 +1131,9 @@
                     <button id="stopRecording" class="voice-button stop-button" style="display: none;">
                         <i class="fas fa-times"></i>
                     </button>
+                    <button id="speakResponse" class="voice-button speak-button" title="Speak last response">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
                 </div>
             </div>
             
@@ -1583,6 +1593,24 @@
                 return false;
             };
             
+            // Event listener for speak button
+            const speakResponseButton = document.getElementById('speakResponse');
+            speakResponseButton.addEventListener('click', function() {
+                // Find the last bot message in voice interface
+                const botMessages = voiceMessages.querySelectorAll('.bot-message');
+                if (botMessages.length > 0) {
+                    const lastBotMessage = botMessages[botMessages.length - 1];
+                    // Extract text content from the message
+                    const textContent = lastBotMessage.textContent;
+                    console.log("Speaking last response:", textContent.substring(0, 50) + "...");
+                    speakText(textContent);
+                } else {
+                    console.log("No bot messages found to speak");
+                    // Speak a default message
+                    speakText("I don't have any response to speak yet. Please ask me a question first.");
+                }
+            });
+            
             // Voice recognition variables
             let recognition;
             let recordingStartTime;
@@ -1710,6 +1738,11 @@
                     // Cancel any ongoing speech
                     speechSynthesis.cancel();
                     
+                    // Activate animation
+                    voiceAnimationOuter.classList.add('voice-animation-active');
+                    voiceStatusText.innerHTML = 'Talking <span class="talking-dot"></span><span class="talking-dot"></span><span class="talking-dot"></span>';
+                    voiceStatusText.classList.add('talking');
+                    
                     // Create a new SpeechSynthesisUtterance
                     const utterance = new SpeechSynthesisUtterance(text);
                     
@@ -1755,6 +1788,8 @@
                     utterance.onstart = function() {
                         voiceSpeaking = true;
                         console.log('Speech started');
+                        // Make sure animation is active
+                        voiceAnimationOuter.classList.add('voice-animation-active');
                     };
                     
                     // When the speech ends
@@ -1768,8 +1803,27 @@
                     };
                     
                     // Speak the text
-                    speechSynthesis.speak(utterance);
-                    return true;
+                    try {
+                        speechSynthesis.speak(utterance);
+                        console.log("Started speaking");
+                        
+                        // In case the speech doesn't start, set a timeout to reset the UI
+                        setTimeout(function() {
+                            if (!voiceSpeaking) {
+                                voiceAnimationOuter.classList.remove('voice-animation-active');
+                                voiceStatusText.textContent = 'Ready to listen';
+                                voiceStatusText.classList.remove('talking');
+                            }
+                        }, 1000);
+                        
+                        return true;
+                    } catch (e) {
+                        console.error("Speech synthesis error:", e);
+                        voiceAnimationOuter.classList.remove('voice-animation-active');
+                        voiceStatusText.textContent = 'Speech error';
+                        voiceStatusText.classList.remove('talking');
+                        return false;
+                    }
                 } else {
                     console.error('Speech synthesis not supported');
                     return false;
