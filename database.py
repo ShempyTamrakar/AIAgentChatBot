@@ -66,6 +66,48 @@ class DatabaseManager:
         )
         ''')
         
+        # Create network devices table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS network_devices (
+            id INTEGER PRIMARY KEY,
+            datacenter_id INTEGER NOT NULL,
+            device_name TEXT NOT NULL,
+            device_type TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            manufacturer TEXT NOT NULL,
+            model TEXT NOT NULL,
+            firmware_version TEXT NOT NULL,
+            status TEXT NOT NULL,
+            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+        )
+        ''')
+        
+        # Create power usage table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS power_usage (
+            id INTEGER PRIMARY KEY,
+            datacenter_id INTEGER NOT NULL,
+            timestamp TEXT NOT NULL,
+            power_kw REAL NOT NULL,
+            pue REAL NOT NULL,
+            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+        )
+        ''')
+        
+        # Create maintenance logs table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS maintenance_logs (
+            id INTEGER PRIMARY KEY,
+            datacenter_id INTEGER NOT NULL,
+            maintenance_date TEXT NOT NULL,
+            maintenance_type TEXT NOT NULL,
+            description TEXT NOT NULL,
+            technician TEXT NOT NULL,
+            status TEXT NOT NULL,
+            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+        )
+        ''')
+        
         conn.commit()
         conn.close()
         logger.info(f"Created database tables in {self.db_path}")
@@ -93,6 +135,52 @@ class DatabaseManager:
                 "INSERT INTO data_centers (name, location, capacity_kw, tier, commissioned_date, last_audit_date) VALUES (?, ?, ?, ?, ?, ?)",
                 data_centers
             )
+            
+            # Check if servers table exists and has any rows
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='servers'")
+            table_exists = cursor.fetchone() is not None
+            
+            if table_exists:
+                cursor.execute("SELECT COUNT(*) FROM servers")
+                server_count = cursor.fetchone()[0]
+                
+                if server_count == 0:
+                    # Get data center IDs for foreign key references
+                    cursor.execute("SELECT id, name FROM data_centers")
+                    dc_ids = {name: id for id, name in cursor.fetchall()}
+                    
+                    # Add sample servers for each data center
+                    servers = [
+                        # Seattle servers
+                        (dc_ids["DC-North-1"], "srv-sea-001", "10.1.1.1", "Dell PowerEdge R740", 32, 256, 10.0, "active", "2020-03-15"),
+                        (dc_ids["DC-North-1"], "srv-sea-002", "10.1.1.2", "Dell PowerEdge R740", 32, 256, 10.0, "active", "2020-03-15"),
+                        (dc_ids["DC-North-1"], "srv-sea-003", "10.1.1.3", "HP ProLiant DL380", 48, 512, 20.0, "active", "2021-05-10"),
+                        
+                        # Austin servers
+                        (dc_ids["DC-South-1"], "srv-aus-001", "10.2.1.1", "Lenovo ThinkSystem SR650", 24, 128, 5.0, "active", "2019-06-22"),
+                        (dc_ids["DC-South-1"], "srv-aus-002", "10.2.1.2", "Lenovo ThinkSystem SR650", 24, 128, 5.0, "maintenance", "2019-06-22"),
+                        
+                        # New York servers
+                        (dc_ids["DC-East-1"], "srv-nyc-001", "10.3.1.1", "Dell PowerEdge R840", 64, 1024, 30.0, "active", "2018-10-05"),
+                        (dc_ids["DC-East-1"], "srv-nyc-002", "10.3.1.2", "Dell PowerEdge R840", 64, 1024, 30.0, "active", "2018-10-05"),
+                        (dc_ids["DC-East-1"], "srv-nyc-003", "10.3.1.3", "Cisco UCS C240 M5", 40, 512, 15.0, "standby", "2019-04-15"),
+                        (dc_ids["DC-East-1"], "srv-nyc-004", "10.3.1.4", "Cisco UCS C240 M5", 40, 512, 15.0, "active", "2019-04-15"),
+                        
+                        # San Francisco servers
+                        (dc_ids["DC-West-1"], "srv-sfo-001", "10.4.1.1", "HP ProLiant DL380", 32, 256, 10.0, "active", "2020-02-20"),
+                        (dc_ids["DC-West-1"], "srv-sfo-002", "10.4.1.2", "HP ProLiant DL380", 32, 256, 10.0, "decommissioned", "2020-02-20"),
+                        
+                        # Chicago servers
+                        (dc_ids["DC-Central-1"], "srv-chi-001", "10.5.1.1", "Supermicro SuperServer", 16, 128, 8.0, "active", "2020-01-10"),
+                        (dc_ids["DC-Central-1"], "srv-chi-002", "10.5.1.2", "Supermicro SuperServer", 16, 128, 8.0, "active", "2020-01-10"),
+                    ]
+                    
+                    cursor.executemany(
+                        "INSERT INTO servers (datacenter_id, hostname, ip_address, model, cpu_cores, ram_gb, storage_tb, status, commissioned_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        servers
+                    )
+                    
+                    logger.info(f"Populated database with {len(servers)} sample servers")
             
             conn.commit()
             logger.info(f"Populated database with {len(data_centers)} sample data centers")

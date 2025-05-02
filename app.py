@@ -151,21 +151,136 @@ class DataCenterChatbot:
                     "You can also execute SQL queries by prefixing them with 'SQL:' (for advanced users)."
                 )
             
+            # Servers in a specific data center
+            if any(phrase in user_input for phrase in ["servers in", "servers at", "how many servers"]):
+                for location in locations:
+                    if location in user_input:
+                        dc_results = self.execute_query(
+                            "SELECT id, name FROM data_centers WHERE location LIKE ?", 
+                            (f"%{location.title()}%",)
+                        )
+                        if dc_results:
+                            dc_id = dc_results[0]['id']
+                            dc_name = dc_results[0]['name']
+                            
+                            server_results = self.execute_query(
+                                "SELECT COUNT(*) as count FROM servers WHERE datacenter_id = ?",
+                                (dc_id,)
+                            )
+                            
+                            count = server_results[0]['count']
+                            
+                            if count > 0:
+                                servers = self.execute_query(
+                                    "SELECT hostname, model, cpu_cores, ram_gb, storage_tb, status FROM servers WHERE datacenter_id = ?",
+                                    (dc_id,)
+                                )
+                                
+                                response = f"The {dc_name} data center in {location.title()} has {count} servers:\n\n"
+                                
+                                for i, server in enumerate(servers, 1):
+                                    response += f"{i}. {server['hostname']}\n"
+                                    response += f"   • Model: {server['model']}\n"
+                                    response += f"   • CPU: {server['cpu_cores']} cores\n"
+                                    response += f"   • RAM: {server['ram_gb']} GB\n"
+                                    response += f"   • Storage: {server['storage_tb']} TB\n"
+                                    response += f"   • Status: {server['status']}\n\n"
+                                
+                                return response
+                            else:
+                                return f"The {dc_name} data center in {location.title()} has no servers registered in the system."
+                
+                # General server count across all data centers
+                if "how many" in user_input:
+                    server_results = self.execute_query("SELECT COUNT(*) as count FROM servers")
+                    count = server_results[0]['count']
+                    
+                    if count > 0:
+                        # Count by status
+                        status_results = self.execute_query(
+                            "SELECT status, COUNT(*) as count FROM servers GROUP BY status ORDER BY count DESC"
+                        )
+                        
+                        response = f"We have a total of {count} servers across all data centers.\n\n"
+                        response += "Server status breakdown:\n"
+                        for status in status_results:
+                            response += f"• {status['status']}: {status['count']} servers\n"
+                        
+                        return response
+                    else:
+                        return "There are no servers registered in the system."
+            
+            # Total server capacity
+            if any(phrase in user_input for phrase in ["total capacity", "total server capacity", "combined capacity"]):
+                results = self.execute_query(
+                    "SELECT SUM(cpu_cores) as total_cpu, SUM(ram_gb) as total_ram, SUM(storage_tb) as total_storage FROM servers"
+                )
+                
+                if results[0]['total_cpu']:
+                    return (
+                        f"Our total server capacity across all data centers is:\n\n"
+                        f"• CPU: {results[0]['total_cpu']} cores\n"
+                        f"• RAM: {results[0]['total_ram']} GB\n"
+                        f"• Storage: {results[0]['total_storage']} TB"
+                    )
+            
+            # Server models
+            if any(phrase in user_input for phrase in ["server models", "models of servers", "what server models", "server types"]):
+                results = self.execute_query(
+                    "SELECT model, COUNT(*) as count FROM servers GROUP BY model ORDER BY count DESC"
+                )
+                
+                if results:
+                    response = "Here are the server models used across our data centers:\n\n"
+                    for i, row in enumerate(results, 1):
+                        response += f"{i}. {row['model']} ({row['count']} servers)\n"
+                    
+                    return response
+            
+            # List all servers
+            if any(phrase in user_input for phrase in ["list all servers", "show all servers", "all servers"]):
+                servers = self.execute_query("""
+                    SELECT s.hostname, s.model, s.status, s.cpu_cores, s.ram_gb, d.name as datacenter
+                    FROM servers s
+                    JOIN data_centers d ON s.datacenter_id = d.id
+                    ORDER BY d.name, s.hostname
+                """)
+                
+                if servers:
+                    response = "Here's a list of all servers across our data centers:\n\n"
+                    current_dc = None
+                    
+                    for server in servers:
+                        if current_dc != server['datacenter']:
+                            current_dc = server['datacenter']
+                            response += f"\n📍 {current_dc}:\n"
+                        
+                        response += f"• {server['hostname']} ({server['model']}) - {server['status']}\n"
+                    
+                    return response
+                else:
+                    return "There are no servers registered in the system."
+            
             # Generic fallback for data center questions
-            if any(term in user_input for term in ["data center", "datacenter", "facility", "location"]):
+            if any(term in user_input for term in ["data center", "datacenter", "facility", "location", "server", "servers"]):
                 return (
-                    "I have information about our data centers including their locations, capacities, and tier levels. "
-                    "Please try asking a more specific question, such as 'list all data centers' or 'tell me about the Seattle data center'."
+                    "I have information about our data centers and servers. "
+                    "You can ask questions like:\n\n"
+                    "• List all data centers\n"
+                    "• Tell me about the Seattle data center\n"
+                    "• How many servers are in the New York data center?\n"
+                    "• What server models do we use?\n"
+                    "• What is our total server capacity?"
                 )
                 
         except Exception as e:
             logger.error(f"Error processing input: {e}")
-            return "I encountered an error processing your request. Please try asking in a different way."
+            return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
         
         # Default response
         return (
-            "I'm not sure how to answer that question. I specialize in providing information about our data centers. "
-            "You can ask me about specific data centers, their capacities, locations, or request a list of all data centers."
+            "I'm not sure how to answer that question. I specialize in providing information about our data centers and servers. "
+            "You can ask me about specific data centers, their servers, capacities, locations, or request a list of all data centers."
         )
 
 # Initialize the data center chatbot
