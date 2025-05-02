@@ -377,7 +377,7 @@ class DataCenterChatbot:
                 return response
             
             # Which server had the most recent maintenance performed?
-            if any(phrase in user_input for phrase in ["server with most recent maintenance", "latest server maintenance", "most recent server maintenance"]):
+            if ("recent" in user_input.lower() and "maintenance" in user_input.lower() and "server" in user_input.lower()) or ("latest" in user_input.lower() and "maintenance" in user_input.lower() and "server" in user_input.lower()):
                 results = self.execute_query("""
                     SELECT s.hostname, s.ip_address, ml.maintenance_date, ml.performed_by, ml.notes
                     FROM maintenance_logs ml
@@ -398,7 +398,7 @@ class DataCenterChatbot:
                 return response
             
             # Show all entities (servers or network devices) that have never had maintenance
-            if any(phrase in user_input for phrase in ["entities without maintenance", "never had maintenance", "servers and devices without maintenance"]):
+            if (("without maintenance" in user_input.lower()) or ("never had maintenance" in user_input.lower()) or ("no maintenance" in user_input.lower())):
                 # Servers without maintenance
                 server_results = self.execute_query("""
                     SELECT s.hostname, s.ip_address, 'server' as entity_type
