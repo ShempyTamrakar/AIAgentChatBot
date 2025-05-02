@@ -422,10 +422,6 @@
                 <i class="fas fa-microphone"></i>
                 <span>Voice</span>
             </a>
-            <a href="#" class="chat-tab" id="historyTab">
-                <i class="fas fa-history"></i>
-                <span>History</span>
-            </a>
         </div>
     </div>
     
@@ -469,7 +465,6 @@
             const chatMessages = document.getElementById('chatMessages');
             const userInput = document.getElementById('userInput');
             const sendButton = document.getElementById('sendButton');
-            const historyTab = document.getElementById('historyTab');
             const helpButton = document.getElementById('help-button');
             const examplesDropdown = document.getElementById('examplesDropdown');
             const exampleQuestions = document.querySelectorAll('.example-question');
@@ -483,6 +478,12 @@
             chatButton.addEventListener('click', () => {
                 chatPopup.style.display = chatPopup.style.display === 'flex' ? 'none' : 'flex';
                 initialBubble.style.display = 'none';
+                
+                // Clear any existing chat messages except the first welcome message
+                while (chatMessages.children.length > 1) {
+                    chatMessages.removeChild(chatMessages.lastChild);
+                }
+                
                 scrollToBottom();
             });
             
@@ -501,12 +502,6 @@
                 if (!examplesDropdown.contains(event.target) && event.target !== helpButton) {
                     examplesDropdown.style.display = 'none';
                 }
-            });
-            
-            // Clear chat history
-            historyTab.addEventListener('click', (event) => {
-                event.preventDefault();
-                clearChat();
             });
             
             // Scroll to the bottom of the chat

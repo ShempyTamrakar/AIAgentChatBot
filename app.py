@@ -34,10 +34,18 @@ class DataCenterChatbot:
         """Get database schema information."""
         return self.schema_info
     
-    def execute_query(self, query):
-        """Execute a SQL query against the database."""
+    def execute_query(self, query, params=()):
+        """Execute a SQL query against the database.
+        
+        Args:
+            query (str): SQL query to execute
+            params (tuple, optional): Parameters for the query
+        
+        Returns:
+            list: List of dictionaries with query results
+        """
         try:
-            return self.db_manager.execute_query(query)
+            return self.db_manager.execute_query(query, params)
         except Exception as e:
             logger.error(f"Error executing query: {e}")
             return [{"error": str(e)}]
@@ -118,23 +126,123 @@ class DataCenterChatbot:
                     dc = results[0]
                     return f"The newest data center is {dc['name']} in {dc['location']}, commissioned on {dc['commissioned_date']}."
             
-            # Direct SQL query handling (only for advanced users)
+            # Advanced SQL query handling
             if user_input.startswith("sql:"):
                 query = user_input[4:].strip()
-                results = self.execute_query(query)
+                
+                # Add support for params in advanced queries
+                params = ()
+                
+                # Special handling for complex queries
+                if "complex:" in query:
+                    # Extract the complex query type
+                    complex_query = query.split("complex:")[1].strip()
+                    
+                    if "server_usage_by_datacenter" in complex_query:
+                        # A complex query to show server usage metrics by data center
+                        query = """
+                        SELECT 
+                            d.name as datacenter_name,
+                            d.location,
+                            COUNT(s.id) as server_count,
+                            SUM(s.cpu_cores) as total_cpu_cores,
+                            SUM(s.ram_gb) as total_ram_gb,
+                            SUM(s.storage_tb) as total_storage_tb,
+                            COUNT(CASE WHEN s.status = 'active' THEN 1 END) as active_servers,
+                            COUNT(CASE WHEN s.status = 'maintenance' THEN 1 END) as maintenance_servers,
+                            COUNT(CASE WHEN s.status = 'standby' THEN 1 END) as standby_servers,
+                            COUNT(CASE WHEN s.status = 'decommissioned' THEN 1 END) as decommissioned_servers
+                        FROM 
+                            data_centers d
+                        LEFT JOIN 
+                            servers s ON d.id = s.datacenter_id
+                        GROUP BY 
+                            d.id
+                        ORDER BY 
+                            server_count DESC
+                        """
+                    elif "server_model_analysis" in complex_query:
+                        # A complex query to analyze server models across data centers
+                        query = """
+                        SELECT 
+                            s.model,
+                            COUNT(s.id) as server_count,
+                            AVG(s.cpu_cores) as avg_cpu_cores,
+                            AVG(s.ram_gb) as avg_ram_gb,
+                            AVG(s.storage_tb) as avg_storage_tb,
+                            GROUP_CONCAT(DISTINCT d.name) as used_in_datacenters
+                        FROM 
+                            servers s
+                        JOIN 
+                            data_centers d ON s.datacenter_id = d.id
+                        GROUP BY 
+                            s.model
+                        ORDER BY 
+                            server_count DESC
+                        """
+                    elif "search:" in complex_query:
+                        # Extract search term
+                        search_term = complex_query.split("search:")[1].strip()
+                        query = """
+                        SELECT 
+                            'server' as type, 
+                            s.hostname as name, 
+                            s.model as detail, 
+                            d.name as datacenter
+                        FROM 
+                            servers s
+                        JOIN 
+                            data_centers d ON s.datacenter_id = d.id
+                        WHERE 
+                            s.hostname LIKE ? OR s.model LIKE ? OR s.ip_address LIKE ?
+                        UNION
+                        SELECT 
+                            'datacenter' as type, 
+                            d.name as name, 
+                            d.location as detail, 
+                            CAST(d.capacity_kw AS TEXT) || ' kW' as datacenter
+                        FROM 
+                            data_centers d
+                        WHERE 
+                            d.name LIKE ? OR d.location LIKE ?
+                        """
+                        
+                        search_pattern = f"%{search_term}%"
+                        params = (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern)
+                
+                # Execute the query
+                results = self.execute_query(query, params)
                 if isinstance(results, list) and len(results) > 0:
                     if 'error' in results[0]:
                         return f"Error executing your SQL query: {results[0]['error']}"
                     
+                    # Format the response as a table for better readability
                     response = f"Query results ({len(results)} rows):\n\n"
-                    for i, row in enumerate(results[:10], 1):  # Limit to first 10 rows
-                        response += f"Row {i}:\n"
-                        for key, value in row.items():
-                            response += f"  {key}: {value}\n"
-                        response += "\n"
                     
-                    if len(results) > 10:
-                        response += f"...and {len(results) - 10} more rows."
+                    # Get headers from the first row
+                    headers = list(results[0].keys())
+                    
+                    # Calculate column widths
+                    col_widths = {header: len(header) for header in headers}
+                    for row in results[:15]:  # Look at first 15 rows to determine column width
+                        for header in headers:
+                            width = len(str(row[header])) if row[header] is not None else 4  # 'None' width
+                            col_widths[header] = max(col_widths[header], width)
+                    
+                    # Create header row
+                    header_row = " | ".join(f"{header:{col_widths[header]}}" for header in headers)
+                    separator = "-+-".join("-" * col_widths[header] for header in headers)
+                    
+                    response += header_row + "\n"
+                    response += separator + "\n"
+                    
+                    # Create data rows
+                    for i, row in enumerate(results[:15], 1):  # Limit to first 15 rows
+                        data_row = " | ".join(f"{str(row[header]):{col_widths[header]}}" if row[header] is not None else "None" for header in headers)
+                        response += data_row + "\n"
+                    
+                    if len(results) > 15:
+                        response += f"\n...and {len(results) - 15} more rows."
                     
                     return response
                 return "Your query returned no results."
@@ -142,13 +250,23 @@ class DataCenterChatbot:
             # User asking for help or examples
             if any(word in user_input for word in ["help", "examples", "what can you do", "capabilities"]):
                 return (
-                    "I can answer questions about our data centers. Here are some examples of what you can ask:\n\n"
+                    "I can answer questions about our data centers and servers. Here are some examples of what you can ask:\n\n"
+                    "Data Center Questions:\n"
                     "• How many data centers do we have?\n"
                     "• List all data centers\n"
                     "• Tell me about the Seattle data center\n"
-                    "• Which data center has the highest capacity?\n"
-                    "• What is the newest data center?\n\n"
-                    "You can also execute SQL queries by prefixing them with 'SQL:' (for advanced users)."
+                    "• Which data center has the highest capacity?\n\n"
+                    "Server Questions:\n"
+                    "• How many servers do we have in total?\n"
+                    "• What server models do we use?\n"
+                    "• List servers in the New York data center\n"
+                    "• What is our total server capacity?\n\n"
+                    "Advanced SQL Queries (for technical users):\n"
+                    "• SQL: SELECT * FROM data_centers\n"
+                    "• SQL: complex:server_usage_by_datacenter\n"
+                    "• SQL: complex:server_model_analysis\n"
+                    "• SQL: complex:search:Dell\n"
+                    "\nThese complex queries provide detailed analytics and search capabilities."
                 )
             
             # Servers in a specific data center
