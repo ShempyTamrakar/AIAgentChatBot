@@ -8,31 +8,136 @@ from flask import Flask, render_template, request, jsonify, session, send_from_d
 import pandas as pd
 import numpy as np
 import requests
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, 
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app
+# Initialize Flask app and SQLAlchemy database
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
-# Mock RAG functionality until we can integrate the full system
-from database import DatabaseManager
+# Configure the database with PostgreSQL
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+db.init_app(app)
+
+# Import models for initializing the database
+with app.app_context():
+    import models
+    db.create_all()
+    
+    # Add sample data if no data exists
+    from models import Location, DataCenter, Rack, Server, NetworkDevice, MaintenanceLog
+    if not Location.query.first():
+        logger.info("No data found. Populating database with sample data.")
+        
+        # Add locations
+        locations = [
+            Location(location_id=1, city='New York', state='NY', country='USA'),
+            Location(location_id=2, city='San Francisco', state='CA', country='USA'),
+            Location(location_id=3, city='London', state=None, country='UK')
+        ]
+        db.session.add_all(locations)
+        db.session.commit()
+        
+        # Add data centers
+        data_centers = [
+            DataCenter(data_center_id=1, name='NYC-01', location_id=1),
+            DataCenter(data_center_id=2, name='SFO-01', location_id=2),
+            DataCenter(data_center_id=3, name='LON-01', location_id=3),
+            DataCenter(data_center_id=4, name='LON-02', location_id=3)
+        ]
+        db.session.add_all(data_centers)
+        db.session.commit()
+        
+        # Add racks
+        racks = [
+            Rack(rack_id=1, rack_label='R101', data_center_id=1),
+            Rack(rack_id=2, rack_label='R102', data_center_id=1),
+            Rack(rack_id=3, rack_label='R201', data_center_id=2),
+            Rack(rack_id=4, rack_label='R301', data_center_id=3)
+        ]
+        db.session.add_all(racks)
+        db.session.commit()
+        
+        # Add servers
+        from datetime import datetime
+        servers = [
+            Server(server_id=1, hostname='web-01', ip_address='192.168.1.10', rack_id=1, os='Ubuntu 22.04'),
+            Server(server_id=2, hostname='db-01', ip_address='192.168.1.11', rack_id=1, os='CentOS 8'),
+            Server(server_id=3, hostname='app-01', ip_address='192.168.2.10', rack_id=3, os='Windows Server 2022'),
+            Server(server_id=4, hostname='cache-01', ip_address='192.168.3.10', rack_id=4, os='Ubuntu 20.04')
+        ]
+        db.session.add_all(servers)
+        db.session.commit()
+        
+        # Add network devices
+        network_devices = [
+            NetworkDevice(device_id=1, device_name='sw-nyc-01', device_type='Switch', ip_address='10.0.1.1', data_center_id=1),
+            NetworkDevice(device_id=2, device_name='fw-nyc-01', device_type='Firewall', ip_address='10.0.1.254', data_center_id=1),
+            NetworkDevice(device_id=3, device_name='sw-sfo-01', device_type='Switch', ip_address='10.0.2.1', data_center_id=2),
+            NetworkDevice(device_id=4, device_name='sw-lon-01', device_type='Switch', ip_address='10.0.3.1', data_center_id=3)
+        ]
+        db.session.add_all(network_devices)
+        db.session.commit()
+        
+        # Add maintenance logs
+        import datetime
+        maintenance_logs = [
+            MaintenanceLog(log_id=1, entity_type='server', entity_id=1, maintenance_date=datetime.date(2023, 1, 15), performed_by='John Doe', notes='OS update'),
+            MaintenanceLog(log_id=2, entity_type='network_device', entity_id=1, maintenance_date=datetime.date(2023, 2, 20), performed_by='Jane Smith', notes='Firmware update'),
+            MaintenanceLog(log_id=3, entity_type='server', entity_id=3, maintenance_date=datetime.date(2023, 3, 10), performed_by='John Doe', notes='Hardware replacement')
+        ]
+        db.session.add_all(maintenance_logs)
+        db.session.commit()
+        
+        logger.info("Sample data added to the database.")
 
 class DataCenterChatbot:
     """An enhanced chatbot for interacting with the data center database."""
     
     def __init__(self):
         """Initialize the chatbot with a database connection."""
-        self.db_manager = DatabaseManager()
-        self.schema_info = self.db_manager.get_schema_info()
+        self.schema_info = self.get_schema_info()
         logger.info("Data Center Chatbot initialized with database connection")
     
     def get_schema_info(self):
         """Get database schema information."""
-        return self.schema_info
+        # Use SQLAlchemy models to describe the schema
+        schema_info = "Database Schema:\n\n"
+        
+        # Add info for each table
+        from models import Location, DataCenter, Rack, Server, NetworkDevice, MaintenanceLog
+        models = [Location, DataCenter, Rack, Server, NetworkDevice, MaintenanceLog]
+        
+        for model in models:
+            schema_info += f"Table: {model.__tablename__}\n"
+            schema_info += "Columns:\n"
+            
+            for column in model.__table__.columns:
+                primary_key = "PRIMARY KEY" if column.primary_key else ""
+                nullable = "" if column.nullable else "NOT NULL"
+                foreign_key = ""
+                if column.foreign_keys:
+                    for fk in column.foreign_keys:
+                        foreign_key = f"REFERENCES {fk.target_fullname}"
+                
+                schema_info += f"  - {column.name} ({column.type}) {primary_key} {nullable} {foreign_key}\n"
+            
+            schema_info += "\n"
+        
+        return schema_info
     
     def execute_query(self, query, params=()):
         """Execute a SQL query against the database.
@@ -45,7 +150,17 @@ class DataCenterChatbot:
             list: List of dictionaries with query results
         """
         try:
-            return self.db_manager.execute_query(query, params)
+            # Use SQLAlchemy's text() to execute raw SQL
+            from sqlalchemy import text
+            from flask import current_app
+            
+            result = db.session.execute(text(query), params)
+            rows = result.fetchall()
+            
+            # Convert RowProxy objects to dictionaries
+            results = [dict(row._mapping) for row in rows]
+            
+            return results
         except Exception as e:
             logger.error(f"Error executing query: {e}")
             return [{"error": str(e)}]
