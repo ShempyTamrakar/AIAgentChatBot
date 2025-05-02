@@ -334,7 +334,7 @@ class DataCenterChatbot:
             # =================== Join-Based Analytical Questions ===================
             
             # Find the total number of servers in each country
-            if any(phrase in user_input for phrase in ["servers in each country", "server count by country", "how many servers per country"]):
+            if ("servers" in user_input and "country" in user_input) or "server count by country" in user_input:
                 results = self.execute_query("""
                     SELECT l.country, COUNT(s.server_id) as server_count
                     FROM locations l
