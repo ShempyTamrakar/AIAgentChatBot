@@ -97,9 +97,12 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find any data centers grouped by country in our system."
                 
+                # Format as a table for better display
                 response = "Here is the count of data centers in each country:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['country']}: {res['dc_count']} data center(s)\n"
+                response += "| Country | Number of Data Centers |\n"
+                response += "|---------|------------------------|\n"
+                for res in results:
+                    response += f"| {res['country']} | {res['dc_count']} |\n"
                 return response
             
             # List all data centers along with their corresponding city and country
@@ -133,9 +136,12 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find information about rack counts in our data centers."
                 
+                # Format as a table for better display
                 response = "Here is the number of racks in each data center:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['data_center']}: {res['rack_count']} rack(s)\n"
+                response += "| Data Center | Number of Racks |\n"
+                response += "|-------------|----------------|\n"
+                for res in results:
+                    response += f"| {res['data_center']} | {res['rack_count']} |\n"
                 return response
             
             # List all servers along with their rack label and data center name
