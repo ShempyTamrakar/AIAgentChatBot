@@ -66,6 +66,372 @@ class DataCenterChatbot:
         
         # Handle questions about data centers
         try:
+            # =================== Location & Data Center Questions ===================
+            
+            # Which cities have data centers?
+            if any(phrase in user_input for phrase in ["which cities have data centers", "cities with data centers", "data center cities"]):
+                results = self.execute_query("""
+                    SELECT DISTINCT l.city, l.country
+                    FROM locations l
+                    JOIN data_centers dc ON l.location_id = dc.location_id
+                    ORDER BY l.country, l.city
+                """)
+                if not results:
+                    return "I couldn't find any cities with data centers in our system."
+                
+                response = "Here are the cities that have data centers:\n\n"
+                for i, loc in enumerate(results, 1):
+                    response += f"{i}. {loc['city']}, {loc['country']}\n"
+                return response
+            
+            # How many data centers are in each country?
+            if any(phrase in user_input for phrase in ["how many data centers in each country", "data centers per country", "data centers by country", "count of data centers by country"]):
+                results = self.execute_query("""
+                    SELECT l.country, COUNT(dc.data_center_id) as dc_count
+                    FROM locations l
+                    JOIN data_centers dc ON l.location_id = dc.location_id
+                    GROUP BY l.country
+                    ORDER BY dc_count DESC
+                """)
+                if not results:
+                    return "I couldn't find any data centers grouped by country in our system."
+                
+                response = "Here is the count of data centers in each country:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['country']}: {res['dc_count']} data center(s)\n"
+                return response
+            
+            # List all data centers along with their corresponding city and country
+            if any(phrase in user_input for phrase in ["list all data centers along with their corresponding city and country", "data centers with locations", "all data centers with city and country"]):
+                results = self.execute_query("""
+                    SELECT dc.name, l.city, l.state, l.country
+                    FROM data_centers dc
+                    JOIN locations l ON dc.location_id = l.location_id
+                    ORDER BY l.country, l.city, dc.name
+                """)
+                if not results:
+                    return "I couldn't find any data centers in our system."
+                
+                response = "Here are all our data centers with their locations:\n\n"
+                for i, dc in enumerate(results, 1):
+                    state_info = f", {dc['state']}" if dc['state'] else ""
+                    response += f"{i}. {dc['name']} - {dc['city']}{state_info}, {dc['country']}\n"
+                return response
+            
+            # =================== Rack & Server Questions ===================
+            
+            # How many racks are in each data center?
+            if any(phrase in user_input for phrase in ["how many racks are in each data center", "racks per data center", "rack count by data center"]):
+                results = self.execute_query("""
+                    SELECT dc.name as data_center, COUNT(r.rack_id) as rack_count
+                    FROM data_centers dc
+                    LEFT JOIN racks r ON dc.data_center_id = r.data_center_id
+                    GROUP BY dc.data_center_id
+                    ORDER BY rack_count DESC
+                """)
+                if not results:
+                    return "I couldn't find information about rack counts in our data centers."
+                
+                response = "Here is the number of racks in each data center:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['data_center']}: {res['rack_count']} rack(s)\n"
+                return response
+            
+            # List all servers along with their rack label and data center name
+            if any(phrase in user_input for phrase in ["list all servers with rack and data center", "servers with rack label and data center", "all servers with their rack and data center"]):
+                results = self.execute_query("""
+                    SELECT s.hostname, s.ip_address, r.rack_label, dc.name as data_center
+                    FROM servers s
+                    JOIN racks r ON s.rack_id = r.rack_id
+                    JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                    ORDER BY dc.name, r.rack_label, s.hostname
+                """)
+                if not results:
+                    return "I couldn't find any servers with their rack and data center information."
+                
+                response = "Here are all servers with their rack and data center information:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. Server: {res['hostname']} ({res['ip_address']})\n"
+                    response += f"   Rack: {res['rack_label']}, Data Center: {res['data_center']}\n\n"
+                return response
+            
+            # Which servers are running Ubuntu OS?
+            if any(phrase in user_input for phrase in ["which servers are running ubuntu", "ubuntu servers", "servers with ubuntu os"]):
+                results = self.execute_query("""
+                    SELECT s.hostname, s.ip_address, s.os, dc.name as data_center
+                    FROM servers s
+                    JOIN racks r ON s.rack_id = r.rack_id
+                    JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                    WHERE s.os LIKE '%Ubuntu%'
+                    ORDER BY dc.name, s.hostname
+                """)
+                if not results:
+                    return "I couldn't find any servers running Ubuntu OS."
+                
+                response = "Here are the servers running Ubuntu OS:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['hostname']} ({res['ip_address']})\n"
+                    response += f"   OS: {res['os']}, Data Center: {res['data_center']}\n\n"
+                return response
+            
+            # Which racks do not have any servers?
+            if any(phrase in user_input for phrase in ["which racks do not have any servers", "empty racks", "racks without servers"]):
+                results = self.execute_query("""
+                    SELECT r.rack_label, dc.name as data_center
+                    FROM racks r
+                    JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                    LEFT JOIN servers s ON r.rack_id = s.rack_id
+                    WHERE s.server_id IS NULL
+                    ORDER BY dc.name, r.rack_label
+                """)
+                if not results:
+                    return "All racks have at least one server assigned."
+                
+                response = "Here are the racks that do not have any servers:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. Rack {res['rack_label']} in {res['data_center']} Data Center\n"
+                return response
+            
+            # =================== Network Device Questions ===================
+            
+            # List all network devices along with their type and the data center they are located in
+            if any(phrase in user_input for phrase in ["list all network devices", "network devices with type and data center", "all network devices and their data center"]):
+                results = self.execute_query("""
+                    SELECT nd.device_name, nd.device_type, nd.ip_address, dc.name as data_center
+                    FROM network_devices nd
+                    JOIN data_centers dc ON nd.data_center_id = dc.data_center_id
+                    ORDER BY dc.name, nd.device_type, nd.device_name
+                """)
+                if not results:
+                    return "I couldn't find any network devices in our system."
+                
+                response = "Here are all network devices with their type and data center:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['device_name']} ({res['ip_address']})\n"
+                    response += f"   Type: {res['device_type']}, Data Center: {res['data_center']}\n\n"
+                return response
+            
+            # How many network devices are in each data center?
+            if any(phrase in user_input for phrase in ["how many network devices in each data center", "network devices per data center", "count of network devices by data center"]):
+                results = self.execute_query("""
+                    SELECT dc.name as data_center, COUNT(nd.device_id) as device_count
+                    FROM data_centers dc
+                    LEFT JOIN network_devices nd ON dc.data_center_id = nd.data_center_id
+                    GROUP BY dc.data_center_id
+                    ORDER BY device_count DESC
+                """)
+                if not results:
+                    return "I couldn't find information about network device counts in our data centers."
+                
+                response = "Here is the number of network devices in each data center:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['data_center']}: {res['device_count']} device(s)\n"
+                return response
+            
+            # Find all IP addresses of network devices in 'London'
+            if any(phrase in user_input for phrase in ["ip addresses of network devices in london", "london network device ips", "network devices in london"]):
+                results = self.execute_query("""
+                    SELECT nd.device_name, nd.device_type, nd.ip_address
+                    FROM network_devices nd
+                    JOIN data_centers dc ON nd.data_center_id = dc.data_center_id
+                    JOIN locations l ON dc.location_id = l.location_id
+                    WHERE LOWER(l.city) = 'london'
+                    ORDER BY nd.device_type, nd.device_name
+                """)
+                if not results:
+                    return "I couldn't find any network devices in London."
+                
+                response = "Here are the IP addresses of network devices in London:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['device_name']} ({res['device_type']}): {res['ip_address']}\n"
+                return response
+            
+            # =================== Maintenance Log Questions ===================
+            
+            # Which entities had maintenance performed by 'John Doe'?
+            if any(phrase in user_input for phrase in ["entities maintained by john doe", "john doe maintenance", "maintenance by john doe"]):
+                results = self.execute_query("""
+                    SELECT ml.entity_type, ml.entity_id, ml.maintenance_date, ml.notes,
+                           CASE 
+                               WHEN ml.entity_type = 'server' THEN (SELECT s.hostname FROM servers s WHERE s.server_id = ml.entity_id)
+                               WHEN ml.entity_type = 'network_device' THEN (SELECT nd.device_name FROM network_devices nd WHERE nd.device_id = ml.entity_id)
+                               ELSE 'Unknown'
+                           END as entity_name
+                    FROM maintenance_logs ml
+                    WHERE LOWER(ml.performed_by) = 'john doe'
+                    ORDER BY ml.maintenance_date DESC
+                """)
+                if not results:
+                    return "I couldn't find any maintenance performed by John Doe."
+                
+                response = "Here are the entities that had maintenance performed by John Doe:\n\n"
+                for i, res in enumerate(results, 1):
+                    entity_type = "Server" if res['entity_type'] == 'server' else "Network Device"
+                    response += f"{i}. {entity_type}: {res['entity_name']}\n"
+                    response += f"   Date: {res['maintenance_date']}, Notes: {res['notes']}\n\n"
+                return response
+            
+            # How many maintenance tasks were performed on servers vs. network devices?
+            if any(phrase in user_input for phrase in ["maintenance tasks on servers vs network devices", "compare server and network device maintenance", "maintenance count by entity type"]):
+                results = self.execute_query("""
+                    SELECT entity_type, COUNT(*) as maintenance_count
+                    FROM maintenance_logs
+                    GROUP BY entity_type
+                    ORDER BY maintenance_count DESC
+                """)
+                if not results:
+                    return "I couldn't find any maintenance tasks in our system."
+                
+                response = "Here is the count of maintenance tasks by entity type:\n\n"
+                for res in results:
+                    entity_type = "Servers" if res['entity_type'] == 'server' else "Network Devices"
+                    response += f"{entity_type}: {res['maintenance_count']} task(s)\n"
+                return response
+            
+            # Which servers had maintenance in 2023?
+            if any(phrase in user_input for phrase in ["servers with maintenance in 2023", "2023 server maintenance", "servers maintained in 2023"]):
+                results = self.execute_query("""
+                    SELECT s.hostname, s.ip_address, ml.maintenance_date, ml.performed_by, ml.notes
+                    FROM maintenance_logs ml
+                    JOIN servers s ON ml.entity_id = s.server_id
+                    WHERE ml.entity_type = 'server' AND ml.maintenance_date LIKE '2023-%'
+                    ORDER BY ml.maintenance_date DESC
+                """)
+                if not results:
+                    return "I couldn't find any servers that had maintenance in 2023."
+                
+                response = "Here are the servers that had maintenance in 2023:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['hostname']} ({res['ip_address']})\n"
+                    response += f"   Date: {res['maintenance_date']}, Performed by: {res['performed_by']}\n"
+                    response += f"   Notes: {res['notes']}\n\n"
+                return response
+            
+            # List all maintenance logs with the corresponding server or device name
+            if any(phrase in user_input for phrase in ["all maintenance logs", "list maintenance logs", "maintenance history"]):
+                results = self.execute_query("""
+                    SELECT ml.maintenance_date, ml.performed_by, ml.notes, ml.entity_type,
+                           CASE 
+                               WHEN ml.entity_type = 'server' THEN (SELECT s.hostname FROM servers s WHERE s.server_id = ml.entity_id)
+                               WHEN ml.entity_type = 'network_device' THEN (SELECT nd.device_name FROM network_devices nd WHERE nd.device_id = ml.entity_id)
+                               ELSE 'Unknown'
+                           END as entity_name
+                    FROM maintenance_logs ml
+                    ORDER BY ml.maintenance_date DESC
+                """)
+                if not results:
+                    return "I couldn't find any maintenance logs in our system."
+                
+                response = "Here are all maintenance logs with their corresponding entity names:\n\n"
+                for i, res in enumerate(results, 1):
+                    entity_type = "Server" if res['entity_type'] == 'server' else "Network Device"
+                    response += f"{i}. {entity_type}: {res['entity_name']}\n"
+                    response += f"   Date: {res['maintenance_date']}, Performed by: {res['performed_by']}\n"
+                    response += f"   Notes: {res['notes']}\n\n"
+                return response
+            
+            # =================== Join-Based Analytical Questions ===================
+            
+            # Find the total number of servers in each country
+            if any(phrase in user_input for phrase in ["servers in each country", "server count by country", "how many servers per country"]):
+                results = self.execute_query("""
+                    SELECT l.country, COUNT(s.server_id) as server_count
+                    FROM locations l
+                    JOIN data_centers dc ON l.location_id = dc.location_id
+                    JOIN racks r ON dc.data_center_id = r.data_center_id
+                    JOIN servers s ON r.rack_id = s.rack_id
+                    GROUP BY l.country
+                    ORDER BY server_count DESC
+                """)
+                if not results:
+                    return "I couldn't find information about server counts by country."
+                
+                response = "Here is the total number of servers in each country:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['country']}: {res['server_count']} server(s)\n"
+                return response
+            
+            # Which data centers have both servers and network devices?
+            if any(phrase in user_input for phrase in ["data centers with both servers and network devices", "data centers with servers and network devices", "which data centers have both"]):
+                results = self.execute_query("""
+                    SELECT dc.name as data_center, l.city, l.country,
+                           COUNT(DISTINCT s.server_id) as server_count,
+                           COUNT(DISTINCT nd.device_id) as network_device_count
+                    FROM data_centers dc
+                    JOIN locations l ON dc.location_id = l.location_id
+                    JOIN racks r ON dc.data_center_id = r.data_center_id
+                    JOIN servers s ON r.rack_id = s.rack_id
+                    JOIN network_devices nd ON dc.data_center_id = nd.data_center_id
+                    GROUP BY dc.data_center_id
+                    HAVING server_count > 0 AND network_device_count > 0
+                    ORDER BY server_count + network_device_count DESC
+                """)
+                if not results:
+                    return "I couldn't find any data centers that have both servers and network devices."
+                
+                response = "Here are the data centers that have both servers and network devices:\n\n"
+                for i, res in enumerate(results, 1):
+                    response += f"{i}. {res['data_center']} in {res['city']}, {res['country']}\n"
+                    response += f"   Servers: {res['server_count']}, Network Devices: {res['network_device_count']}\n\n"
+                return response
+            
+            # Which server had the most recent maintenance performed?
+            if any(phrase in user_input for phrase in ["server with most recent maintenance", "latest server maintenance", "most recent server maintenance"]):
+                results = self.execute_query("""
+                    SELECT s.hostname, s.ip_address, ml.maintenance_date, ml.performed_by, ml.notes
+                    FROM maintenance_logs ml
+                    JOIN servers s ON ml.entity_id = s.server_id
+                    WHERE ml.entity_type = 'server'
+                    ORDER BY ml.maintenance_date DESC
+                    LIMIT 1
+                """)
+                if not results:
+                    return "I couldn't find any maintenance records for servers."
+                
+                res = results[0]
+                response = f"The server with the most recent maintenance is {res['hostname']} ({res['ip_address']}).\n\n"
+                response += f"Maintenance details:\n"
+                response += f"Date: {res['maintenance_date']}\n"
+                response += f"Performed by: {res['performed_by']}\n"
+                response += f"Notes: {res['notes']}\n"
+                return response
+            
+            # Show all entities (servers or network devices) that have never had maintenance
+            if any(phrase in user_input for phrase in ["entities without maintenance", "never had maintenance", "servers and devices without maintenance"]):
+                # Servers without maintenance
+                server_results = self.execute_query("""
+                    SELECT s.hostname, s.ip_address, 'server' as entity_type
+                    FROM servers s
+                    LEFT JOIN maintenance_logs ml ON ml.entity_id = s.server_id AND ml.entity_type = 'server'
+                    WHERE ml.log_id IS NULL
+                """)
+                
+                # Network devices without maintenance
+                device_results = self.execute_query("""
+                    SELECT nd.device_name, nd.ip_address, 'network_device' as entity_type
+                    FROM network_devices nd
+                    LEFT JOIN maintenance_logs ml ON ml.entity_id = nd.device_id AND ml.entity_type = 'network_device'
+                    WHERE ml.log_id IS NULL
+                """)
+                
+                if not server_results and not device_results:
+                    return "All entities have had maintenance performed at least once."
+                
+                response = "Here are the entities that have never had maintenance:\n\n"
+                
+                if server_results:
+                    response += "Servers without maintenance:\n"
+                    for i, res in enumerate(server_results, 1):
+                        response += f"{i}. {res['hostname']} ({res['ip_address']})\n"
+                    response += "\n"
+                
+                if device_results:
+                    response += "Network devices without maintenance:\n"
+                    for i, res in enumerate(device_results, 1):
+                        response += f"{i}. {res['device_name']} ({res['ip_address']})\n"
+                
+                return response
+            
             # Count of data centers
             if any(phrase in user_input for phrase in ["how many data centers", "number of data centers", "count of data centers"]):
                 results = self.execute_query("SELECT COUNT(*) as count FROM data_centers")
