@@ -74,57 +74,125 @@ class DataCenterChatbot:
             
             # List all data centers
             if any(phrase in user_input for phrase in ["list all data centers", "show all data centers", "what data centers", "which data centers"]):
-                results = self.execute_query("SELECT name, location, capacity_kw, tier FROM data_centers ORDER BY name")
-                if not results:
-                    return "I couldn't find any data centers in our system."
-                
-                response = "Here are all our data centers:\n\n"
-                for i, dc in enumerate(results, 1):
-                    response += f"{i}. {dc['name']} in {dc['location']}\n   - Capacity: {dc['capacity_kw']} kW\n   - Tier: {dc['tier']}\n"
-                return response
+                try:
+                    # Check if we need to include location details
+                    if any(word in user_input for word in ["city", "country", "location", "along with", "corresponding"]):
+                        results = self.execute_query("""
+                            SELECT dc.name, l.city, l.state, l.country
+                            FROM data_centers dc
+                            JOIN locations l ON dc.location_id = l.location_id
+                            ORDER BY dc.name
+                        """)
+                        if not results:
+                            return "I couldn't find any data centers in our system."
+                        
+                        response = "Here are all our data centers with their locations:\n\n"
+                        for i, dc in enumerate(results, 1):
+                            state_info = f", {dc['state']}" if dc['state'] else ""
+                            response += f"{i}. {dc['name']} in {dc['city']}{state_info}, {dc['country']}\n"
+                        return response
+                    else:
+                        # Standard data center list
+                        results = self.execute_query("SELECT name FROM data_centers ORDER BY name")
+                        if not results:
+                            return "I couldn't find any data centers in our system."
+                        
+                        response = "Here are all our data centers:\n\n"
+                        for i, dc in enumerate(results, 1):
+                            response += f"{i}. {dc['name']}\n"
+                        return response
+                except Exception as e:
+                    logger.error(f"Error listing data centers: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
             
             # Information about a specific data center by location
-            locations = ["seattle", "austin", "new york", "san francisco", "chicago"]
-            for location in locations:
-                if location in user_input:
-                    results = self.execute_query(
-                        "SELECT * FROM data_centers WHERE location LIKE ?", 
-                        (f"%{location.title()}%",)
-                    )
+            cities = ["new york", "san francisco", "london"]
+            for city in cities:
+                if city in user_input.lower():
+                    # Get data centers in this city
+                    results = self.execute_query("""
+                        SELECT dc.data_center_id, dc.name, l.city, l.state, l.country
+                        FROM data_centers dc
+                        JOIN locations l ON dc.location_id = l.location_id
+                        WHERE LOWER(l.city) LIKE ?
+                    """, (f"%{city}%",))
+                    
+                    if results:
+                        response = f"Data centers in {city.title()}:\n\n"
+                        for i, dc in enumerate(results, 1):
+                            state_info = f", {dc['state']}" if dc['state'] else ""
+                            response += f"{i}. {dc['name']} Data Center in {dc['city']}{state_info}, {dc['country']}\n"
+                        
+                        # If only one result, add rack counts
+                        if len(results) == 1:
+                            dc_id = results[0]['data_center_id']
+                            rack_results = self.execute_query("""
+                                SELECT COUNT(*) as rack_count 
+                                FROM racks
+                                WHERE data_center_id = ?
+                            """, (dc_id,))
+                            
+                            server_results = self.execute_query("""
+                                SELECT COUNT(*) as server_count
+                                FROM servers s
+                                JOIN racks r ON s.rack_id = r.rack_id
+                                WHERE r.data_center_id = ?
+                            """, (dc_id,))
+                            
+                            if rack_results and server_results:
+                                rack_count = rack_results[0]['rack_count']
+                                server_count = server_results[0]['server_count']
+                                
+                                response += f"\nDetails:\n"
+                                response += f"• Racks: {rack_count}\n"
+                                response += f"• Servers: {server_count}\n"
+                        
+                        return response
+                    return f"I don't have information about any data centers in {city.title()}."
+            
+            # Data center with most racks/servers (as capacity is not in our schema)
+            if any(phrase in user_input for phrase in ["largest data center", "biggest data center"]):
+                try:
+                    results = self.execute_query("""
+                        SELECT dc.name, l.city, l.country, COUNT(r.rack_id) as rack_count
+                        FROM data_centers dc
+                        JOIN locations l ON dc.location_id = l.location_id
+                        JOIN racks r ON dc.data_center_id = r.data_center_id
+                        GROUP BY dc.data_center_id
+                        ORDER BY rack_count DESC
+                        LIMIT 1
+                    """)
+                    
                     if results:
                         dc = results[0]
-                        return f"📍 {dc['name']} Data Center in {dc['location']}:\n\n" \
-                               f"• Capacity: {dc['capacity_kw']} kW\n" \
-                               f"• Tier Level: {dc['tier']}\n" \
-                               f"• Commissioned: {dc['commissioned_date']}\n" \
-                               f"• Last Audit: {dc['last_audit_date']}\n"
+                        return f"The largest data center is {dc['name']} in {dc['city']}, {dc['country']} with {dc['rack_count']} racks."
+                    else:
+                        return "I couldn't determine which data center is the largest based on rack count."
+                except Exception as e:
+                    logger.error(f"Error determining largest data center: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
             
-            # Data center with highest capacity
-            if any(phrase in user_input for phrase in ["highest capacity", "most powerful", "largest data center"]):
-                results = self.execute_query(
-                    "SELECT name, location, capacity_kw FROM data_centers ORDER BY capacity_kw DESC LIMIT 1"
-                )
-                if results:
-                    dc = results[0]
-                    return f"The data center with the highest capacity is {dc['name']} in {dc['location']} with {dc['capacity_kw']} kW capacity."
-            
-            # Data center with lowest capacity
-            if any(phrase in user_input for phrase in ["lowest capacity", "smallest data center"]):
-                results = self.execute_query(
-                    "SELECT name, location, capacity_kw FROM data_centers ORDER BY capacity_kw ASC LIMIT 1"
-                )
-                if results:
-                    dc = results[0]
-                    return f"The data center with the lowest capacity is {dc['name']} in {dc['location']} with {dc['capacity_kw']} kW capacity."
-            
-            # Newest data center
-            if any(phrase in user_input for phrase in ["newest data center", "most recent", "latest data center"]):
-                results = self.execute_query(
-                    "SELECT name, location, commissioned_date FROM data_centers ORDER BY commissioned_date DESC LIMIT 1"
-                )
-                if results:
-                    dc = results[0]
-                    return f"The newest data center is {dc['name']} in {dc['location']}, commissioned on {dc['commissioned_date']}."
+            # Data center with fewest racks
+            if any(phrase in user_input for phrase in ["smallest data center"]):
+                try:
+                    results = self.execute_query("""
+                        SELECT dc.name, l.city, l.country, COUNT(r.rack_id) as rack_count
+                        FROM data_centers dc
+                        JOIN locations l ON dc.location_id = l.location_id
+                        JOIN racks r ON dc.data_center_id = r.data_center_id
+                        GROUP BY dc.data_center_id
+                        ORDER BY rack_count ASC
+                        LIMIT 1
+                    """)
+                    
+                    if results:
+                        dc = results[0]
+                        return f"The smallest data center is {dc['name']} in {dc['city']}, {dc['country']} with only {dc['rack_count']} racks."
+                    else:
+                        return "I couldn't determine which data center is the smallest based on rack count."
+                except Exception as e:
+                    logger.error(f"Error determining smallest data center: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
             
             # Advanced SQL query handling
             if user_input.startswith("sql:"):
@@ -142,22 +210,20 @@ class DataCenterChatbot:
                         # A complex query to show server usage metrics by data center
                         query = """
                         SELECT 
-                            d.name as datacenter_name,
-                            d.location,
-                            COUNT(s.id) as server_count,
-                            SUM(s.cpu_cores) as total_cpu_cores,
-                            SUM(s.ram_gb) as total_ram_gb,
-                            SUM(s.storage_tb) as total_storage_tb,
-                            COUNT(CASE WHEN s.status = 'active' THEN 1 END) as active_servers,
-                            COUNT(CASE WHEN s.status = 'maintenance' THEN 1 END) as maintenance_servers,
-                            COUNT(CASE WHEN s.status = 'standby' THEN 1 END) as standby_servers,
-                            COUNT(CASE WHEN s.status = 'decommissioned' THEN 1 END) as decommissioned_servers
+                            dc.name as datacenter_name,
+                            l.city, 
+                            l.country,
+                            COUNT(s.server_id) as server_count
                         FROM 
-                            data_centers d
+                            data_centers dc
+                        JOIN
+                            locations l ON dc.location_id = l.location_id
                         LEFT JOIN 
-                            servers s ON d.id = s.datacenter_id
+                            racks r ON dc.data_center_id = r.data_center_id
+                        LEFT JOIN
+                            servers s ON r.rack_id = s.rack_id
                         GROUP BY 
-                            d.id
+                            dc.data_center_id
                         ORDER BY 
                             server_count DESC
                         """
@@ -165,18 +231,17 @@ class DataCenterChatbot:
                         # A complex query to analyze server models across data centers
                         query = """
                         SELECT 
-                            s.model,
-                            COUNT(s.id) as server_count,
-                            AVG(s.cpu_cores) as avg_cpu_cores,
-                            AVG(s.ram_gb) as avg_ram_gb,
-                            AVG(s.storage_tb) as avg_storage_tb,
-                            GROUP_CONCAT(DISTINCT d.name) as used_in_datacenters
+                            s.os as operating_system,
+                            COUNT(s.server_id) as server_count,
+                            GROUP_CONCAT(DISTINCT dc.name) as used_in_datacenters
                         FROM 
                             servers s
                         JOIN 
-                            data_centers d ON s.datacenter_id = d.id
+                            racks r ON s.rack_id = r.rack_id
+                        JOIN
+                            data_centers dc ON r.data_center_id = dc.data_center_id
                         GROUP BY 
-                            s.model
+                            s.os
                         ORDER BY 
                             server_count DESC
                         """
@@ -187,24 +252,28 @@ class DataCenterChatbot:
                         SELECT 
                             'server' as type, 
                             s.hostname as name, 
-                            s.model as detail, 
-                            d.name as datacenter
+                            s.os as detail, 
+                            dc.name as datacenter
                         FROM 
                             servers s
                         JOIN 
-                            data_centers d ON s.datacenter_id = d.id
+                            racks r ON s.rack_id = r.rack_id
+                        JOIN
+                            data_centers dc ON r.data_center_id = dc.data_center_id
                         WHERE 
-                            s.hostname LIKE ? OR s.model LIKE ? OR s.ip_address LIKE ?
+                            s.hostname LIKE ? OR s.os LIKE ? OR s.ip_address LIKE ?
                         UNION
                         SELECT 
                             'datacenter' as type, 
-                            d.name as name, 
-                            d.location as detail, 
-                            CAST(d.capacity_kw AS TEXT) || ' kW' as datacenter
+                            dc.name as name, 
+                            l.city as detail, 
+                            l.country as datacenter
                         FROM 
-                            data_centers d
+                            data_centers dc
+                        JOIN
+                            locations l ON dc.location_id = l.location_id
                         WHERE 
-                            d.name LIKE ? OR d.location LIKE ?
+                            dc.name LIKE ? OR l.city LIKE ?
                         """
                         
                         search_pattern = f"%{search_term}%"
@@ -247,137 +316,303 @@ class DataCenterChatbot:
                     return response
                 return "Your query returned no results."
             
+            # Which cities have data centers?
+            if any(phrase in user_input for phrase in ["which cities", "what cities", "cities with", "list cities"]) and "data center" in user_input:
+                try:
+                    results = self.execute_query("""
+                        SELECT DISTINCT l.city, l.state, l.country, COUNT(dc.data_center_id) as dc_count
+                        FROM locations l
+                        JOIN data_centers dc ON l.location_id = dc.location_id
+                        GROUP BY l.city, l.state, l.country
+                        ORDER BY dc_count DESC
+                    """)
+                    
+                    if not results:
+                        return "I couldn't find any cities with data centers in our database."
+                    
+                    response = "Here are the cities that have data centers:\n\n"
+                    for i, row in enumerate(results, 1):
+                        state_info = f", {row['state']}" if row['state'] else ""
+                        response += f"{i}. {row['city']}{state_info}, {row['country']} ({row['dc_count']} data center"
+                        response += "s" if row['dc_count'] > 1 else ""
+                        response += ")\n"
+                    
+                    return response
+                except Exception as e:
+                    logger.error(f"Error listing cities with data centers: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
+            # How many racks are in each data center?
+            if "racks" in user_input and any(phrase in user_input for phrase in ["how many", "count", "number of"]) and "data center" in user_input:
+                try:
+                    results = self.execute_query("""
+                        SELECT dc.name as data_center_name, COUNT(r.rack_id) as rack_count
+                        FROM data_centers dc
+                        LEFT JOIN racks r ON dc.data_center_id = r.data_center_id
+                        GROUP BY dc.data_center_id
+                        ORDER BY rack_count DESC
+                    """)
+                    
+                    if not results:
+                        return "I couldn't find any data on racks per data center."
+                    
+                    response = "Here's the number of racks in each data center:\n\n"
+                    for i, row in enumerate(results, 1):
+                        response += f"{i}. {row['data_center_name']}: {row['rack_count']} rack"
+                        response += "s" if row['rack_count'] != 1 else ""
+                        response += "\n"
+                    
+                    return response
+                except Exception as e:
+                    logger.error(f"Error counting racks by data center: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
+            # List servers with rack and data center info
+            if "servers" in user_input and any(word in user_input for word in ["list", "show", "display"]) and any(phrase in user_input for phrase in ["rack", "data center"]):
+                try:
+                    results = self.execute_query("""
+                        SELECT s.hostname, s.ip_address, s.os, r.rack_label, dc.name as data_center_name
+                        FROM servers s
+                        JOIN racks r ON s.rack_id = r.rack_id
+                        JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                        ORDER BY dc.name, r.rack_label, s.hostname
+                    """)
+                    
+                    if not results:
+                        return "I couldn't find any servers with rack and data center information."
+                    
+                    response = "Here are all servers with their rack and data center information:\n\n"
+                    current_dc = None
+                    current_rack = None
+                    
+                    for server in results:
+                        # If we're starting a new data center section
+                        if current_dc != server['data_center_name']:
+                            current_dc = server['data_center_name']
+                            response += f"\n📍 {current_dc} Data Center:\n"
+                            current_rack = None
+                        
+                        # If we're starting a new rack section
+                        if current_rack != server['rack_label']:
+                            current_rack = server['rack_label']
+                            response += f"  📦 Rack {current_rack}:\n"
+                        
+                        # Add server info
+                        response += f"    • {server['hostname']} ({server['ip_address']}) - {server['os']}\n"
+                    
+                    return response
+                except Exception as e:
+                    logger.error(f"Error listing servers with rack and data center info: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
+            # Which servers run specific OS?
+            if "servers" in user_input and "os" in user_input.lower() or "ubuntu" in user_input.lower() or "centos" in user_input.lower() or "windows" in user_input.lower():
+                try:
+                    os_query = None
+                    if "ubuntu" in user_input.lower():
+                        os_query = "Ubuntu%"
+                    elif "centos" in user_input.lower():
+                        os_query = "CentOS%"
+                    elif "windows" in user_input.lower():
+                        os_query = "Windows%"
+                    
+                    if os_query:
+                        results = self.execute_query("""
+                            SELECT s.hostname, s.ip_address, s.os, r.rack_label, dc.name as data_center_name
+                            FROM servers s
+                            JOIN racks r ON s.rack_id = r.rack_id
+                            JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                            WHERE s.os LIKE ?
+                            ORDER BY dc.name, r.rack_label
+                        """, (os_query,))
+                        
+                        if not results:
+                            return f"I couldn't find any servers running {os_query.replace('%', '')} in our system."
+                        
+                        os_type = os_query.replace('%', '')
+                        response = f"Here are all servers running {os_type}:\n\n"
+                        
+                        for i, server in enumerate(results, 1):
+                            response += f"{i}. {server['hostname']} ({server['ip_address']})\n"
+                            response += f"   • Data Center: {server['data_center_name']}\n"
+                            response += f"   • Rack: {server['rack_label']}\n"
+                            response += f"   • OS: {server['os']}\n\n"
+                        
+                        return response
+                except Exception as e:
+                    logger.error(f"Error filtering servers by OS: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
             # User asking for help or examples
             if any(word in user_input for word in ["help", "examples", "what can you do", "capabilities"]):
                 return (
-                    "I can answer questions about our data centers and servers. Here are some examples of what you can ask:\n\n"
+                    "I have information about our data centers and servers. You can ask questions like:\n\n"
                     "Data Center Questions:\n"
                     "• How many data centers do we have?\n"
                     "• List all data centers\n"
                     "• Tell me about the Seattle data center\n"
-                    "• Which data center has the highest capacity?\n\n"
+                    "• Which cities have data centers?\n"
+                    "• How many racks are in each data center?\n\n"
                     "Server Questions:\n"
-                    "• How many servers do we have in total?\n"
+                    "• List all servers along with their rack label and data center name\n"
+                    "• Which servers are running Ubuntu OS?\n"
                     "• What server models do we use?\n"
-                    "• List servers in the New York data center\n"
                     "• What is our total server capacity?\n\n"
                     "Advanced SQL Queries (for technical users):\n"
                     "• SQL: SELECT * FROM data_centers\n"
-                    "• SQL: complex:server_usage_by_datacenter\n"
-                    "• SQL: complex:server_model_analysis\n"
-                    "• SQL: complex:search:Dell\n"
-                    "\nThese complex queries provide detailed analytics and search capabilities."
+                    "• SQL: SELECT * FROM servers WHERE os LIKE 'Ubuntu%'\n"
+                    "\nFor complex queries with joins, just ask naturally and I'll translate to SQL."
                 )
             
             # Servers in a specific data center
             if any(phrase in user_input for phrase in ["servers in", "servers at", "how many servers"]):
-                for location in locations:
-                    if location in user_input:
-                        dc_results = self.execute_query(
-                            "SELECT id, name FROM data_centers WHERE location LIKE ?", 
-                            (f"%{location.title()}%",)
-                        )
-                        if dc_results:
-                            dc_id = dc_results[0]['id']
+                cities = ["new york", "san francisco", "london"]
+                for city in cities:
+                    if city in user_input.lower():
+                        try:
+                            # Find data centers in this city first
+                            dc_results = self.execute_query("""
+                                SELECT dc.data_center_id, dc.name, l.city 
+                                FROM data_centers dc
+                                JOIN locations l ON dc.location_id = l.location_id
+                                WHERE LOWER(l.city) LIKE ?
+                            """, (f"%{city}%",))
+                            
+                            if not dc_results:
+                                return f"I couldn't find any data centers in {city.title()}."
+                                
+                            # If there's more than one data center in this city, list them all
+                            if len(dc_results) > 1:
+                                response = f"There are {len(dc_results)} data centers in {city.title()}. Which one are you interested in?\n\n"
+                                for i, dc in enumerate(dc_results, 1):
+                                    response += f"{i}. {dc['name']}\n"
+                                return response
+                                
+                            # Get servers in the data center
+                            dc_id = dc_results[0]['data_center_id']
                             dc_name = dc_results[0]['name']
                             
-                            server_results = self.execute_query(
-                                "SELECT COUNT(*) as count FROM servers WHERE datacenter_id = ?",
-                                (dc_id,)
-                            )
+                            server_results = self.execute_query("""
+                                SELECT s.hostname, s.ip_address, s.os
+                                FROM servers s
+                                JOIN racks r ON s.rack_id = r.rack_id
+                                WHERE r.data_center_id = ?
+                            """, (dc_id,))
                             
-                            count = server_results[0]['count']
+                            count = len(server_results)
                             
                             if count > 0:
-                                servers = self.execute_query(
-                                    "SELECT hostname, model, cpu_cores, ram_gb, storage_tb, status FROM servers WHERE datacenter_id = ?",
-                                    (dc_id,)
-                                )
+                                response = f"The {dc_name} data center in {city.title()} has {count} servers:\n\n"
                                 
-                                response = f"The {dc_name} data center in {location.title()} has {count} servers:\n\n"
-                                
-                                for i, server in enumerate(servers, 1):
-                                    response += f"{i}. {server['hostname']}\n"
-                                    response += f"   • Model: {server['model']}\n"
-                                    response += f"   • CPU: {server['cpu_cores']} cores\n"
-                                    response += f"   • RAM: {server['ram_gb']} GB\n"
-                                    response += f"   • Storage: {server['storage_tb']} TB\n"
-                                    response += f"   • Status: {server['status']}\n\n"
+                                for i, server in enumerate(server_results, 1):
+                                    response += f"{i}. {server['hostname']} ({server['ip_address']})\n"
+                                    response += f"   • OS: {server['os']}\n\n"
                                 
                                 return response
                             else:
-                                return f"The {dc_name} data center in {location.title()} has no servers registered in the system."
+                                return f"The {dc_name} data center in {city.title()} has no servers registered in the system."
+                        except Exception as e:
+                            logger.error(f"Error getting servers for city {city}: {e}")
+                            return f"I encountered an error getting server information: {str(e)}. Please try asking in a different way."
                 
                 # General server count across all data centers
                 if "how many" in user_input:
-                    server_results = self.execute_query("SELECT COUNT(*) as count FROM servers")
-                    count = server_results[0]['count']
-                    
-                    if count > 0:
-                        # Count by status
-                        status_results = self.execute_query(
-                            "SELECT status, COUNT(*) as count FROM servers GROUP BY status ORDER BY count DESC"
-                        )
+                    try:
+                        server_results = self.execute_query("""
+                            SELECT COUNT(*) as count FROM servers
+                        """)
                         
-                        response = f"We have a total of {count} servers across all data centers.\n\n"
-                        response += "Server status breakdown:\n"
-                        for status in status_results:
-                            response += f"• {status['status']}: {status['count']} servers\n"
+                        if server_results:
+                            count = server_results[0]['count']
+                            
+                            # Count by OS
+                            os_results = self.execute_query("""
+                                SELECT os, COUNT(*) as count 
+                                FROM servers 
+                                GROUP BY os 
+                                ORDER BY count DESC
+                            """)
+                            
+                            response = f"We have a total of {count} servers across all data centers.\n\n"
+                            
+                            if os_results:
+                                response += "Server OS breakdown:\n"
+                                for os_row in os_results:
+                                    response += f"• {os_row['os']}: {os_row['count']} servers\n"
+                            
+                            return response
+                        else:
+                            return "I couldn't get server count information."
+                    except Exception as e:
+                        logger.error(f"Error counting servers: {e}")
+                        return f"I encountered an error counting servers: {str(e)}. Please try asking in a different way."
+            
+            # Total server count 
+            if any(phrase in user_input for phrase in ["total server count", "combined servers", "all servers count"]):
+                try:
+                    results = self.execute_query("""
+                        SELECT COUNT(*) as total FROM servers
+                    """)
+                    
+                    if results:
+                        count = results[0]['total']
+                        return f"We have a total of {count} servers across all data centers."
+                    else:
+                        return "I couldn't determine the total number of servers."
+                except Exception as e:
+                    logger.error(f"Error getting total server count: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
+            # Server operating systems
+            if any(phrase in user_input for phrase in ["server os", "operating systems", "what os", "os types"]):
+                try:
+                    results = self.execute_query("""
+                        SELECT os, COUNT(*) as count 
+                        FROM servers 
+                        GROUP BY os 
+                        ORDER BY count DESC
+                    """)
+                    
+                    if results:
+                        response = "Here are the operating systems used across our servers:\n\n"
+                        for i, row in enumerate(results, 1):
+                            response += f"{i}. {row['os']} ({row['count']} servers)\n"
+                        
+                        return response
+                    else:
+                        return "I couldn't find information about server operating systems."
+                except Exception as e:
+                    logger.error(f"Error listing server OS: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
+            
+            # List all servers
+            if any(phrase in user_input for phrase in ["list all servers", "show all servers", "all servers"]) and not "count" in user_input:
+                try:
+                    servers = self.execute_query("""
+                        SELECT s.hostname, s.ip_address, s.os, dc.name as data_center_name
+                        FROM servers s
+                        JOIN racks r ON s.rack_id = r.rack_id
+                        JOIN data_centers dc ON r.data_center_id = dc.data_center_id
+                        ORDER BY dc.name, s.hostname
+                    """)
+                    
+                    if servers:
+                        response = "Here's a list of all servers across our data centers:\n\n"
+                        current_dc = None
+                        
+                        for server in servers:
+                            if current_dc != server['data_center_name']:
+                                current_dc = server['data_center_name']
+                                response += f"\n📍 {current_dc} Data Center:\n"
+                            
+                            response += f"• {server['hostname']} ({server['ip_address']}) - {server['os']}\n"
                         
                         return response
                     else:
                         return "There are no servers registered in the system."
-            
-            # Total server capacity
-            if any(phrase in user_input for phrase in ["total capacity", "total server capacity", "combined capacity"]):
-                results = self.execute_query(
-                    "SELECT SUM(cpu_cores) as total_cpu, SUM(ram_gb) as total_ram, SUM(storage_tb) as total_storage FROM servers"
-                )
-                
-                if results[0]['total_cpu']:
-                    return (
-                        f"Our total server capacity across all data centers is:\n\n"
-                        f"• CPU: {results[0]['total_cpu']} cores\n"
-                        f"• RAM: {results[0]['total_ram']} GB\n"
-                        f"• Storage: {results[0]['total_storage']} TB"
-                    )
-            
-            # Server models
-            if any(phrase in user_input for phrase in ["server models", "models of servers", "what server models", "server types"]):
-                results = self.execute_query(
-                    "SELECT model, COUNT(*) as count FROM servers GROUP BY model ORDER BY count DESC"
-                )
-                
-                if results:
-                    response = "Here are the server models used across our data centers:\n\n"
-                    for i, row in enumerate(results, 1):
-                        response += f"{i}. {row['model']} ({row['count']} servers)\n"
-                    
-                    return response
-            
-            # List all servers
-            if any(phrase in user_input for phrase in ["list all servers", "show all servers", "all servers"]):
-                servers = self.execute_query("""
-                    SELECT s.hostname, s.model, s.status, s.cpu_cores, s.ram_gb, d.name as datacenter
-                    FROM servers s
-                    JOIN data_centers d ON s.datacenter_id = d.id
-                    ORDER BY d.name, s.hostname
-                """)
-                
-                if servers:
-                    response = "Here's a list of all servers across our data centers:\n\n"
-                    current_dc = None
-                    
-                    for server in servers:
-                        if current_dc != server['datacenter']:
-                            current_dc = server['datacenter']
-                            response += f"\n📍 {current_dc}:\n"
-                        
-                        response += f"• {server['hostname']} ({server['model']}) - {server['status']}\n"
-                    
-                    return response
-                else:
-                    return "There are no servers registered in the system."
+                except Exception as e:
+                    logger.error(f"Error listing all servers: {e}")
+                    return f"I encountered an error processing your request: {str(e)}. Please try asking in a different way."
             
             # Generic fallback for data center questions
             if any(term in user_input for term in ["data center", "datacenter", "facility", "location", "server", "servers"]):
