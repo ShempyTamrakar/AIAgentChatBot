@@ -54,14 +54,15 @@ class DataCenterChatbot:
         """Process user input and generate a response based on database information."""
         user_input = user_input.lower().strip()
         
-        # Handle greetings and farewells
+        # Handle greetings and farewells - but only if they're the primary content
         greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
         farewells = ['bye', 'goodbye', 'see you', 'talk to you later', 'thanks']
         
-        if any(greeting in user_input for greeting in greetings):
+        # Only respond to greetings if they're the main content (i.e., the message is very short)
+        if len(user_input.split()) <= 3 and any(user_input == greeting for greeting in greetings):
             return "Hello! I'm your data center assistant. I can provide information about our data centers, servers, and infrastructure. How can I help you today?"
         
-        if any(farewell in user_input for farewell in farewells):
+        if len(user_input.split()) <= 3 and any(user_input == farewell for farewell in farewells):
             return "Goodbye! Feel free to chat again when you need information about our data centers."
         
         # Handle questions about data centers
@@ -85,7 +86,7 @@ class DataCenterChatbot:
                 return response
             
             # How many data centers are in each country?
-            if any(phrase in user_input for phrase in ["how many data centers in each country", "data centers per country", "data centers by country", "count of data centers by country"]):
+            if "each country" in user_input or "by country" in user_input or "per country" in user_input:
                 results = self.execute_query("""
                     SELECT l.country, COUNT(dc.data_center_id) as dc_count
                     FROM locations l
@@ -102,7 +103,7 @@ class DataCenterChatbot:
                 return response
             
             # List all data centers along with their corresponding city and country
-            if any(phrase in user_input for phrase in ["list all data centers along with their corresponding city and country", "data centers with locations", "all data centers with city and country"]):
+            if ("list" in user_input and "data centers" in user_input and ("city" in user_input or "country" in user_input)) or "data centers with locations" in user_input:
                 results = self.execute_query("""
                     SELECT dc.name, l.city, l.state, l.country
                     FROM data_centers dc
@@ -121,7 +122,7 @@ class DataCenterChatbot:
             # =================== Rack & Server Questions ===================
             
             # How many racks are in each data center?
-            if any(phrase in user_input for phrase in ["how many racks are in each data center", "racks per data center", "rack count by data center"]):
+            if ("racks" in user_input and "data center" in user_input) or "racks per data center" in user_input:
                 results = self.execute_query("""
                     SELECT dc.name as data_center, COUNT(r.rack_id) as rack_count
                     FROM data_centers dc
