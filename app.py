@@ -307,11 +307,12 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find any servers that had maintenance in 2023."
                 
+                # Format as a nice table
                 response = "Here are the servers that had maintenance in 2023:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['hostname']} ({res['ip_address']})\n"
-                    response += f"   Date: {res['maintenance_date']}, Performed by: {res['performed_by']}\n"
-                    response += f"   Notes: {res['notes']}\n\n"
+                response += "| Server | IP Address | Maintenance Date | Performed By | Notes |\n"
+                response += "|--------|-----------|-----------------|--------------|-------|\n"
+                for res in results:
+                    response += f"| {res['hostname']} | {res['ip_address']} | {res['maintenance_date']} | {res['performed_by']} | {res['notes']} |\n"
                 return response
             
             # List all maintenance logs with the corresponding server or device name
