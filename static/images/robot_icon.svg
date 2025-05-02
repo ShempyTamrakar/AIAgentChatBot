@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(0deg); }
+    }
+    .floating-robot {
+      animation: float 3s ease-in-out infinite;
+      transform-origin: center;
+    }
+  </style>
+
+  <g class="floating-robot">
+    <!-- Shadow ellipse -->
+    <ellipse cx="100" cy="180" rx="40" ry="5" fill="#333333" opacity="0.2"/>
+    
+    <!-- Robot Body -->
+    <rect x="70" y="90" width="60" height="60" rx="10" fill="white" stroke="#CCCCCC" stroke-width="2"/>
+    <circle cx="100" cy="120" r="10" fill="white" stroke="#CCCCCC" stroke-width="2"/>
+    
+    <!-- Legs -->
+    <line x1="85" y1="150" x2="85" y2="170" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    <line x1="115" y1="150" x2="115" y2="170" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="85" cy="173" rx="8" ry="4" fill="#CCCCCC"/>
+    <ellipse cx="115" cy="173" rx="8" ry="4" fill="#CCCCCC"/>
+    
+    <!-- Arms -->
+    <line x1="70" y1="100" x2="50" y2="110" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    <line x1="50" y1="110" x2="45" y2="125" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    <line x1="130" y1="100" x2="150" y2="110" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    <line x1="150" y1="110" x2="155" y2="125" stroke="#CCCCCC" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- Head -->
+    <rect x="70" y="50" width="60" height="40" rx="20" fill="white" stroke="#CCCCCC" stroke-width="2"/>
+    
+    <!-- Eyes -->
+    <circle cx="85" cy="70" r="8" fill="black">
+      <animate attributeName="r" values="8;7;8" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="115" cy="70" r="8" fill="black">
+      <animate attributeName="r" values="8;7;8" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="82" cy="67" r="2" fill="white"/>
+    <circle cx="112" cy="67" r="2" fill="white"/>
+    
+    <!-- Smile -->
+    <path d="M85,80 Q100,90 115,80" stroke="black" stroke-width="2" fill="none"/>
+    
+    <!-- Antenna -->
+    <line x1="100" y1="50" x2="100" y2="40" stroke="#CCCCCC" stroke-width="2"/>
+    <circle cx="100" cy="35" r="5" fill="#CCCCCC"/>
+    
+    <!-- Ears -->
+    <rect x="65" y="65" width="5" height="15" rx="2" fill="#CCCCCC"/>
+    <rect x="130" y="65" width="5" height="15" rx="2" fill="#CCCCCC"/>
+    
+    <!-- Motion lines -->
+    <path d="M60,60 C55,58 52,56 55,52" stroke="#999999" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M140,60 C145,58 148,56 145,52" stroke="#999999" stroke-width="1" fill="none" opacity="0.5"/>
+  </g>
+</svg>

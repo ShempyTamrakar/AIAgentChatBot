@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-5px) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(0deg); }
+      75% { transform: translateY(-5px) rotate(1deg); }
+    }
+    .robot {
+      animation: float 4s ease-in-out infinite;
+    }
+  </style>
+  
+  <g class="robot">
+    <!-- Shadow -->
+    <ellipse cx="100" cy="180" rx="40" ry="5" fill="#000000" opacity="0.1"/>
+    
+    <!-- Feet -->
+    <ellipse cx="85" cy="170" rx="12" ry="6" fill="#AAAAAA"/>
+    <ellipse cx="115" cy="170" rx="12" ry="6" fill="#AAAAAA"/>
+    
+    <!-- Legs -->
+    <rect x="78" y="150" width="14" height="20" rx="5" fill="#AAAAAA"/>
+    <rect x="108" y="150" width="14" height="20" rx="5" fill="#AAAAAA"/>
+    
+    <!-- Body -->
+    <rect x="70" y="100" width="60" height="50" rx="8" fill="#DDDDDD"/>
+    <circle cx="100" cy="120" r="10" fill="#FFFFFF"/>
+    
+    <!-- Arms -->
+    <path d="M70,110 C40,120 30,130 60,140" stroke="#AAAAAA" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M130,110 C160,120 170,130 140,140" stroke="#AAAAAA" stroke-width="8" stroke-linecap="round" fill="none"/>
+    
+    <!-- Head -->
+    <rect x="75" y="50" width="50" height="50" rx="25" fill="#DDDDDD"/>
+    
+    <!-- Eyes -->
+    <circle cx="90" cy="75" r="8" fill="#333333"/>
+    <circle cx="110" cy="75" r="8" fill="#333333"/>
+    <circle cx="87" cy="72" r="3" fill="#FFFFFF"/>
+    <circle cx="107" cy="72" r="3" fill="#FFFFFF"/>
+    
+    <!-- Mouth -->
+    <path d="M85,90 C93,100 107,100 115,90" stroke="#333333" stroke-width="2" fill="none"/>
+    
+    <!-- Antenna -->
+    <line x1="100" y1="50" x2="100" y2="40" stroke="#AAAAAA" stroke-width="3"/>
+    <circle cx="100" cy="36" r="4" fill="#AAAAAA"/>
+    
+    <!-- Ear pieces -->
+    <rect x="68" y="70" width="7" height="15" rx="3" fill="#AAAAAA"/>
+    <rect x="125" y="70" width="7" height="15" rx="3" fill="#AAAAAA"/>
+    
+    <!-- Motion lines -->
+    <path d="M78,55 C73,50 75,45 80,47" stroke="#333333" stroke-width="1" opacity="0.5" fill="none"/>
+    <path d="M122,55 C127,50 125,45 120,47" stroke="#333333" stroke-width="1" opacity="0.5" fill="none"/>
+    <path d="M70,135 C65,135 63,130 67,130" stroke="#333333" stroke-width="1" opacity="0.5" fill="none"/>
+    <path d="M130,135 C135,135 137,130 133,130" stroke="#333333" stroke-width="1" opacity="0.5" fill="none"/>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 """
 Database module for the Data Center Chatbot application.
-This simplified version uses SQLite to store data center information.
+Manages connections and queries to the database containing datacenter information.
 """
 
 import sqlite3
@@ -12,7 +12,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """Manages the SQLite database for data center information."""
+    """Manages the database for data center information."""
     
     def __init__(self, db_path=None):
         """
@@ -28,164 +28,135 @@ class DatabaseManager:
             db_path = data_dir / 'datacenter.db'
             
         self.db_path = str(db_path)
-        self._create_tables_if_not_exist()
-        self._check_and_populate_sample_data()
+        self._create_db_structure()
     
-    def _create_tables_if_not_exist(self):
-        """Create database tables if they don't exist already."""
+    def _create_db_structure(self):
+        """Create the database structure and populate with sample data if needed."""
+        # First, check if the database file exists
+        if os.path.exists(self.db_path):
+            # If it exists, try to check if it has data
+            try:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='locations'")
+                if cursor.fetchone():
+                    # Table exists, check if it has data
+                    cursor.execute("SELECT COUNT(*) FROM locations")
+                    if cursor.fetchone()[0] > 0:
+                        # Has data, we're good
+                        conn.close()
+                        return
+                conn.close()
+            except sqlite3.Error:
+                pass
+                
+        # Either the database doesn't exist or it doesn't have the right schema
+        # Let's create a fresh one
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
+            
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Create data centers table
+        # Create tables
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS data_centers (
-            id INTEGER PRIMARY KEY,
+        CREATE TABLE locations (
+            location_id INTEGER PRIMARY KEY,
+            city TEXT NOT NULL,
+            state TEXT,
+            country TEXT NOT NULL
+        )
+        ''')
+        
+        cursor.execute('''
+        CREATE TABLE data_centers (
+            data_center_id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            location TEXT NOT NULL,
-            capacity_kw REAL NOT NULL,
-            tier INTEGER NOT NULL,
-            commissioned_date TEXT NOT NULL,
-            last_audit_date TEXT
+            location_id INTEGER,
+            FOREIGN KEY (location_id) REFERENCES locations (location_id)
         )
         ''')
         
-        # Create servers table
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS servers (
-            id INTEGER PRIMARY KEY,
-            datacenter_id INTEGER NOT NULL,
+        CREATE TABLE racks (
+            rack_id INTEGER PRIMARY KEY,
+            rack_label TEXT NOT NULL,
+            data_center_id INTEGER,
+            FOREIGN KEY (data_center_id) REFERENCES data_centers (data_center_id)
+        )
+        ''')
+        
+        cursor.execute('''
+        CREATE TABLE servers (
+            server_id INTEGER PRIMARY KEY,
             hostname TEXT NOT NULL,
-            ip_address TEXT NOT NULL,
-            model TEXT NOT NULL,
-            cpu_cores INTEGER NOT NULL,
-            ram_gb INTEGER NOT NULL,
-            storage_tb REAL NOT NULL,
-            status TEXT NOT NULL,
-            commissioned_date TEXT NOT NULL,
-            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+            ip_address TEXT,
+            rack_id INTEGER,
+            os TEXT,
+            FOREIGN KEY (rack_id) REFERENCES racks (rack_id)
         )
         ''')
         
-        # Create network devices table
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS network_devices (
-            id INTEGER PRIMARY KEY,
-            datacenter_id INTEGER NOT NULL,
+        CREATE TABLE network_devices (
+            device_id INTEGER PRIMARY KEY,
             device_name TEXT NOT NULL,
-            device_type TEXT NOT NULL,
-            ip_address TEXT NOT NULL,
-            manufacturer TEXT NOT NULL,
-            model TEXT NOT NULL,
-            firmware_version TEXT NOT NULL,
-            status TEXT NOT NULL,
-            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+            device_type TEXT,
+            ip_address TEXT,
+            data_center_id INTEGER,
+            FOREIGN KEY (data_center_id) REFERENCES data_centers (data_center_id)
         )
         ''')
         
-        # Create power usage table
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS power_usage (
-            id INTEGER PRIMARY KEY,
-            datacenter_id INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            power_kw REAL NOT NULL,
-            pue REAL NOT NULL,
-            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
+        CREATE TABLE maintenance_logs (
+            log_id INTEGER PRIMARY KEY,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            maintenance_date DATE NOT NULL,
+            performed_by TEXT,
+            notes TEXT
         )
         ''')
         
-        # Create maintenance logs table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS maintenance_logs (
-            id INTEGER PRIMARY KEY,
-            datacenter_id INTEGER NOT NULL,
-            maintenance_date TEXT NOT NULL,
-            maintenance_type TEXT NOT NULL,
-            description TEXT NOT NULL,
-            technician TEXT NOT NULL,
-            status TEXT NOT NULL,
-            FOREIGN KEY (datacenter_id) REFERENCES data_centers (id)
-        )
-        ''')
+        # Insert sample data
+        # Locations
+        cursor.execute("INSERT INTO locations VALUES (1, 'New York', 'NY', 'USA')")
+        cursor.execute("INSERT INTO locations VALUES (2, 'San Francisco', 'CA', 'USA')")
+        cursor.execute("INSERT INTO locations VALUES (3, 'London', NULL, 'UK')")
         
+        # Data Centers
+        cursor.execute("INSERT INTO data_centers VALUES (1, 'NYC-01', 1)")
+        cursor.execute("INSERT INTO data_centers VALUES (2, 'SFO-01', 2)")
+        cursor.execute("INSERT INTO data_centers VALUES (3, 'LON-01', 3)")
+        cursor.execute("INSERT INTO data_centers VALUES (4, 'LON-02', 3)")
+        
+        # Racks
+        cursor.execute("INSERT INTO racks VALUES (1, 'R101', 1)")
+        cursor.execute("INSERT INTO racks VALUES (2, 'R102', 1)")
+        cursor.execute("INSERT INTO racks VALUES (3, 'R201', 2)")
+        cursor.execute("INSERT INTO racks VALUES (4, 'R301', 3)")
+        
+        # Servers
+        cursor.execute("INSERT INTO servers VALUES (1, 'web-01', '192.168.1.10', 1, 'Ubuntu 22.04')")
+        cursor.execute("INSERT INTO servers VALUES (2, 'db-01', '192.168.1.11', 1, 'CentOS 8')")
+        cursor.execute("INSERT INTO servers VALUES (3, 'app-01', '192.168.2.10', 3, 'Windows Server 2022')")
+        cursor.execute("INSERT INTO servers VALUES (4, 'cache-01', '192.168.3.10', 4, 'Ubuntu 20.04')")
+        
+        # Network Devices
+        cursor.execute("INSERT INTO network_devices VALUES (1, 'sw-nyc-01', 'Switch', '10.0.1.1', 1)")
+        cursor.execute("INSERT INTO network_devices VALUES (2, 'fw-nyc-01', 'Firewall', '10.0.1.254', 1)")
+        cursor.execute("INSERT INTO network_devices VALUES (3, 'sw-sfo-01', 'Switch', '10.0.2.1', 2)")
+        cursor.execute("INSERT INTO network_devices VALUES (4, 'sw-lon-01', 'Switch', '10.0.3.1', 3)")
+        
+        # Maintenance Logs
+        cursor.execute("INSERT INTO maintenance_logs VALUES (1, 'server', 1, '2023-01-15', 'John Doe', 'OS update')")
+        cursor.execute("INSERT INTO maintenance_logs VALUES (2, 'network_device', 1, '2023-02-20', 'Jane Smith', 'Firmware update')")
+        cursor.execute("INSERT INTO maintenance_logs VALUES (3, 'server', 3, '2023-03-10', 'John Doe', 'Hardware replacement')")
+
         conn.commit()
         conn.close()
-        logger.info(f"Created database tables in {self.db_path}")
-    
-    def _check_and_populate_sample_data(self):
-        """Check if database has data and populate with sample data if needed."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Check if data_centers table has any rows
-        cursor.execute("SELECT COUNT(*) FROM data_centers")
-        count = cursor.fetchone()[0]
-        
-        if count == 0:
-            # Add sample data centers
-            data_centers = [
-                ("DC-North-1", "Seattle, WA", 5000.0, 4, "2018-06-15", "2023-01-10"),
-                ("DC-South-1", "Austin, TX", 3500.0, 3, "2019-03-22", "2022-11-05"),
-                ("DC-East-1", "New York, NY", 6000.0, 4, "2017-09-01", "2023-02-15"),
-                ("DC-West-1", "San Francisco, CA", 4500.0, 3, "2020-01-10", "2022-12-20"),
-                ("DC-Central-1", "Chicago, IL", 4000.0, 3, "2019-07-05", "2023-01-25")
-            ]
-            
-            cursor.executemany(
-                "INSERT INTO data_centers (name, location, capacity_kw, tier, commissioned_date, last_audit_date) VALUES (?, ?, ?, ?, ?, ?)",
-                data_centers
-            )
-            
-            # Check if servers table exists and has any rows
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='servers'")
-            table_exists = cursor.fetchone() is not None
-            
-            if table_exists:
-                cursor.execute("SELECT COUNT(*) FROM servers")
-                server_count = cursor.fetchone()[0]
-                
-                if server_count == 0:
-                    # Get data center IDs for foreign key references
-                    cursor.execute("SELECT id, name FROM data_centers")
-                    dc_ids = {name: id for id, name in cursor.fetchall()}
-                    
-                    # Add sample servers for each data center
-                    servers = [
-                        # Seattle servers
-                        (dc_ids["DC-North-1"], "srv-sea-001", "10.1.1.1", "Dell PowerEdge R740", 32, 256, 10.0, "active", "2020-03-15"),
-                        (dc_ids["DC-North-1"], "srv-sea-002", "10.1.1.2", "Dell PowerEdge R740", 32, 256, 10.0, "active", "2020-03-15"),
-                        (dc_ids["DC-North-1"], "srv-sea-003", "10.1.1.3", "HP ProLiant DL380", 48, 512, 20.0, "active", "2021-05-10"),
-                        
-                        # Austin servers
-                        (dc_ids["DC-South-1"], "srv-aus-001", "10.2.1.1", "Lenovo ThinkSystem SR650", 24, 128, 5.0, "active", "2019-06-22"),
-                        (dc_ids["DC-South-1"], "srv-aus-002", "10.2.1.2", "Lenovo ThinkSystem SR650", 24, 128, 5.0, "maintenance", "2019-06-22"),
-                        
-                        # New York servers
-                        (dc_ids["DC-East-1"], "srv-nyc-001", "10.3.1.1", "Dell PowerEdge R840", 64, 1024, 30.0, "active", "2018-10-05"),
-                        (dc_ids["DC-East-1"], "srv-nyc-002", "10.3.1.2", "Dell PowerEdge R840", 64, 1024, 30.0, "active", "2018-10-05"),
-                        (dc_ids["DC-East-1"], "srv-nyc-003", "10.3.1.3", "Cisco UCS C240 M5", 40, 512, 15.0, "standby", "2019-04-15"),
-                        (dc_ids["DC-East-1"], "srv-nyc-004", "10.3.1.4", "Cisco UCS C240 M5", 40, 512, 15.0, "active", "2019-04-15"),
-                        
-                        # San Francisco servers
-                        (dc_ids["DC-West-1"], "srv-sfo-001", "10.4.1.1", "HP ProLiant DL380", 32, 256, 10.0, "active", "2020-02-20"),
-                        (dc_ids["DC-West-1"], "srv-sfo-002", "10.4.1.2", "HP ProLiant DL380", 32, 256, 10.0, "decommissioned", "2020-02-20"),
-                        
-                        # Chicago servers
-                        (dc_ids["DC-Central-1"], "srv-chi-001", "10.5.1.1", "Supermicro SuperServer", 16, 128, 8.0, "active", "2020-01-10"),
-                        (dc_ids["DC-Central-1"], "srv-chi-002", "10.5.1.2", "Supermicro SuperServer", 16, 128, 8.0, "active", "2020-01-10"),
-                    ]
-                    
-                    cursor.executemany(
-                        "INSERT INTO servers (datacenter_id, hostname, ip_address, model, cpu_cores, ram_gb, storage_tb, status, commissioned_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        servers
-                    )
-                    
-                    logger.info(f"Populated database with {len(servers)} sample servers")
-            
-            conn.commit()
-            logger.info(f"Populated database with {len(data_centers)} sample data centers")
-        
-        conn.close()
+        logger.info(f"Created database structure and populated with sample data in {self.db_path}")
     
     def execute_query(self, query, params=()):
         """
@@ -246,7 +217,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         # Get all table names
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
         tables = cursor.fetchall()
         
         schema_info = "Database Schema:\n\n"
