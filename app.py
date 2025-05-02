@@ -19,92 +19,157 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
 # Mock RAG functionality until we can integrate the full system
-class SimpleChatbot:
-    """A simplified chatbot that simulates RAG functionality."""
+from database import DatabaseManager
+
+class DataCenterChatbot:
+    """An enhanced chatbot for interacting with the data center database."""
     
     def __init__(self):
-        self.database = self._initialize_database()
-        
-    def _initialize_database(self):
-        """Create a simple in-memory database."""
-        # Data centers table
-        data_centers = pd.DataFrame({
-            'id': range(1, 6),
-            'name': ['DC-North-1', 'DC-South-1', 'DC-East-1', 'DC-West-1', 'DC-Central-1'],
-            'location': ['Seattle, WA', 'Austin, TX', 'New York, NY', 'San Francisco, CA', 'Chicago, IL'],
-            'capacity_kw': [5000.0, 3500.0, 6000.0, 4500.0, 4000.0],
-            'tier': [4, 3, 4, 3, 3],
-            'commissioned_date': ['2018-06-15', '2019-03-22', '2017-09-01', '2020-01-10', '2019-07-05'],
-            'last_audit_date': ['2023-01-10', '2022-11-05', '2023-02-15', '2022-12-20', '2023-01-25']
-        })
-        
-        return {'data_centers': data_centers}
+        """Initialize the chatbot with a database connection."""
+        self.db_manager = DatabaseManager()
+        self.schema_info = self.db_manager.get_schema_info()
+        logger.info("Data Center Chatbot initialized with database connection")
     
     def get_schema_info(self):
         """Get database schema information."""
-        schema_info = "Database Schema:\n\n"
-        schema_info += "Table: data_centers\n"
-        schema_info += "Columns:\n"
-        schema_info += "  - id (INTEGER) PRIMARY KEY\n"
-        schema_info += "  - name (TEXT) NOT NULL\n"
-        schema_info += "  - location (TEXT) NOT NULL\n"
-        schema_info += "  - capacity_kw (REAL) NOT NULL\n"
-        schema_info += "  - tier (INTEGER) NOT NULL\n"
-        schema_info += "  - commissioned_date (TEXT) NOT NULL\n"
-        schema_info += "  - last_audit_date (TEXT)\n"
-        return schema_info
+        return self.schema_info
     
     def execute_query(self, query):
-        """Execute a query on the in-memory database."""
-        # Very basic query handling
-        query = query.lower()
-        
-        if "select * from data_centers" in query:
-            return self.database['data_centers'].to_dict('records')
-        
-        if "select count(*) from data_centers" in query:
-            return [{'count': len(self.database['data_centers'])}]
-        
-        # More specific queries
-        if "seattle" in query or "dc-north-1" in query:
-            return self.database['data_centers'][self.database['data_centers']['name'] == 'DC-North-1'].to_dict('records')
-        
-        # Default response if query not recognized
-        return [{"result": "Query not recognized"}]
+        """Execute a SQL query against the database."""
+        try:
+            return self.db_manager.execute_query(query)
+        except Exception as e:
+            logger.error(f"Error executing query: {e}")
+            return [{"error": str(e)}]
     
     def process_input(self, user_input):
-        """Process user input and generate a response."""
-        user_input = user_input.lower()
+        """Process user input and generate a response based on database information."""
+        user_input = user_input.lower().strip()
         
-        # Handle greetings
-        greetings = ['hi', 'hello', 'hey', 'greetings']
+        # Handle greetings and farewells
+        greetings = ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening']
+        farewells = ['bye', 'goodbye', 'see you', 'talk to you later', 'thanks']
+        
         if any(greeting in user_input for greeting in greetings):
-            return "Hello! I'm your data center assistant. How can I help you today?"
+            return "Hello! I'm your data center assistant. I can provide information about our data centers, servers, and infrastructure. How can I help you today?"
         
-        # Handle data center questions
-        if "data center" in user_input or "datacenter" in user_input:
-            if "how many" in user_input:
-                result = self.execute_query("SELECT COUNT(*) FROM data_centers")
-                return f"We have {result[0]['count']} data centers in our system."
+        if any(farewell in user_input for farewell in farewells):
+            return "Goodbye! Feel free to chat again when you need information about our data centers."
+        
+        # Handle questions about data centers
+        try:
+            # Count of data centers
+            if any(phrase in user_input for phrase in ["how many data centers", "number of data centers", "count of data centers"]):
+                results = self.execute_query("SELECT COUNT(*) as count FROM data_centers")
+                count = results[0]['count']
+                return f"We currently have {count} data centers in our system."
             
-            if "list" in user_input or "show" in user_input:
-                results = self.execute_query("SELECT * FROM data_centers")
-                response = "Here are our data centers:\n"
-                for dc in results:
-                    response += f"- {dc['name']} in {dc['location']} (Tier {dc['tier']})\n"
+            # List all data centers
+            if any(phrase in user_input for phrase in ["list all data centers", "show all data centers", "what data centers", "which data centers"]):
+                results = self.execute_query("SELECT name, location, capacity_kw, tier FROM data_centers ORDER BY name")
+                if not results:
+                    return "I couldn't find any data centers in our system."
+                
+                response = "Here are all our data centers:\n\n"
+                for i, dc in enumerate(results, 1):
+                    response += f"{i}. {dc['name']} in {dc['location']}\n   - Capacity: {dc['capacity_kw']} kW\n   - Tier: {dc['tier']}\n"
                 return response
             
-            if "seattle" in user_input:
-                results = self.execute_query("Seattle query")
+            # Information about a specific data center by location
+            locations = ["seattle", "austin", "new york", "san francisco", "chicago"]
+            for location in locations:
+                if location in user_input:
+                    results = self.execute_query(
+                        "SELECT * FROM data_centers WHERE location LIKE ?", 
+                        (f"%{location.title()}%",)
+                    )
+                    if results:
+                        dc = results[0]
+                        return f"📍 {dc['name']} Data Center in {dc['location']}:\n\n" \
+                               f"• Capacity: {dc['capacity_kw']} kW\n" \
+                               f"• Tier Level: {dc['tier']}\n" \
+                               f"• Commissioned: {dc['commissioned_date']}\n" \
+                               f"• Last Audit: {dc['last_audit_date']}\n"
+            
+            # Data center with highest capacity
+            if any(phrase in user_input for phrase in ["highest capacity", "most powerful", "largest data center"]):
+                results = self.execute_query(
+                    "SELECT name, location, capacity_kw FROM data_centers ORDER BY capacity_kw DESC LIMIT 1"
+                )
                 if results:
                     dc = results[0]
-                    return f"{dc['name']} in {dc['location']} has a capacity of {dc['capacity_kw']} kW and is a Tier {dc['tier']} facility."
+                    return f"The data center with the highest capacity is {dc['name']} in {dc['location']} with {dc['capacity_kw']} kW capacity."
+            
+            # Data center with lowest capacity
+            if any(phrase in user_input for phrase in ["lowest capacity", "smallest data center"]):
+                results = self.execute_query(
+                    "SELECT name, location, capacity_kw FROM data_centers ORDER BY capacity_kw ASC LIMIT 1"
+                )
+                if results:
+                    dc = results[0]
+                    return f"The data center with the lowest capacity is {dc['name']} in {dc['location']} with {dc['capacity_kw']} kW capacity."
+            
+            # Newest data center
+            if any(phrase in user_input for phrase in ["newest data center", "most recent", "latest data center"]):
+                results = self.execute_query(
+                    "SELECT name, location, commissioned_date FROM data_centers ORDER BY commissioned_date DESC LIMIT 1"
+                )
+                if results:
+                    dc = results[0]
+                    return f"The newest data center is {dc['name']} in {dc['location']}, commissioned on {dc['commissioned_date']}."
+            
+            # Direct SQL query handling (only for advanced users)
+            if user_input.startswith("sql:"):
+                query = user_input[4:].strip()
+                results = self.execute_query(query)
+                if isinstance(results, list) and len(results) > 0:
+                    if 'error' in results[0]:
+                        return f"Error executing your SQL query: {results[0]['error']}"
+                    
+                    response = f"Query results ({len(results)} rows):\n\n"
+                    for i, row in enumerate(results[:10], 1):  # Limit to first 10 rows
+                        response += f"Row {i}:\n"
+                        for key, value in row.items():
+                            response += f"  {key}: {value}\n"
+                        response += "\n"
+                    
+                    if len(results) > 10:
+                        response += f"...and {len(results) - 10} more rows."
+                    
+                    return response
+                return "Your query returned no results."
+            
+            # User asking for help or examples
+            if any(word in user_input for word in ["help", "examples", "what can you do", "capabilities"]):
+                return (
+                    "I can answer questions about our data centers. Here are some examples of what you can ask:\n\n"
+                    "• How many data centers do we have?\n"
+                    "• List all data centers\n"
+                    "• Tell me about the Seattle data center\n"
+                    "• Which data center has the highest capacity?\n"
+                    "• What is the newest data center?\n\n"
+                    "You can also execute SQL queries by prefixing them with 'SQL:' (for advanced users)."
+                )
+            
+            # Generic fallback for data center questions
+            if any(term in user_input for term in ["data center", "datacenter", "facility", "location"]):
+                return (
+                    "I have information about our data centers including their locations, capacities, and tier levels. "
+                    "Please try asking a more specific question, such as 'list all data centers' or 'tell me about the Seattle data center'."
+                )
+                
+        except Exception as e:
+            logger.error(f"Error processing input: {e}")
+            return "I encountered an error processing your request. Please try asking in a different way."
         
         # Default response
-        return "I'm not sure how to answer that. You can ask me about our data centers, their locations, capacities, and other details."
+        return (
+            "I'm not sure how to answer that question. I specialize in providing information about our data centers. "
+            "You can ask me about specific data centers, their capacities, locations, or request a list of all data centers."
+        )
 
-# Initialize the simplified chatbot
-chatbot = SimpleChatbot()
+# Initialize the data center chatbot
+chatbot = DataCenterChatbot()
 
 @app.route('/')
 def index():
