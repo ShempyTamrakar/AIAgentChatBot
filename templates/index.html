@@ -15,6 +15,11 @@
             --yondr-medium-gray: #CCCCCC;
         }
         
+        html, body {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+        
         body {
             display: flex;
             flex-direction: column;
@@ -181,6 +186,79 @@
             border-bottom-left-radius: 4px;
         }
         
+        /* Enhanced styling for tables in bot messages */
+        .bot-message table {
+            width: 100%;
+            margin: 10px 0;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .bot-message table th {
+            background-color: var(--yondr-orange);
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .bot-message table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--yondr-light-gray);
+            font-size: 12px;
+        }
+        
+        .bot-message table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .bot-message table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        /* Highlight important data points */
+        .bot-message strong {
+            color: var(--yondr-orange);
+            font-weight: 600;
+        }
+        
+        /* Styled lists in bot messages */
+        .bot-message ul, .bot-message ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .bot-message li {
+            margin-bottom: 5px;
+        }
+        
+        /* Code or technical information */
+        .bot-message code {
+            background-color: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        /* Data visualization placeholder - for future implementation */
+        .data-visualization {
+            width: 100%;
+            height: 180px;
+            background-color: white;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--yondr-medium-gray);
+            border: 1px solid var(--yondr-light-gray);
+        }
+        
         .initial-bubble {
             position: fixed;
             right: 110px;
@@ -342,6 +420,52 @@
             font-weight: bold;
             line-height: 1.2;
             text-transform: uppercase;
+        }
+        
+        /* Responsive design for smaller screens */
+        @media (max-width: 992px) {
+            .page-header h1,
+            .page-header .subtitle,
+            .page-header .tagline {
+                font-size: 3rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-header h1,
+            .page-header .subtitle,
+            .page-header .tagline {
+                font-size: 2.5rem;
+            }
+            
+            .system-card {
+                min-width: 100%;
+                margin-bottom: 1rem;
+            }
+            
+            .chat-popup {
+                width: 90%;
+                right: 5%;
+                left: 5%;
+                max-width: none;
+                bottom: 70px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .page-header h1,
+            .page-header .subtitle,
+            .page-header .tagline {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .examples-dropdown {
+                width: 250px;
+            }
         }
         
         .page-header .tomorrow-text {
@@ -739,13 +863,104 @@
                 scrollToBottom();
             }
             
-            // Add a bot message to the chat
+            // Add a bot message to the chat with enhanced formatting
             function addBotMessage(message) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'chat-message bot-message';
-                messageDiv.textContent = message;
+                
+                // Check if the message contains table-like data and format it
+                const formattedMessage = formatBotMessage(message);
+                messageDiv.innerHTML = formattedMessage;
+                
                 chatMessages.appendChild(messageDiv);
                 scrollToBottom();
+            }
+            
+            // Format the bot's message for better presentation
+            function formatBotMessage(message) {
+                // Format tables: Detect patterns that look like tabular data
+                let formattedMessage = message;
+                
+                // Check for SQL-like table results
+                if (message.includes('|') && (message.includes('\n') || message.includes('<br>'))) {
+                    try {
+                        // Split by lines
+                        const lines = message.split(/\n|<br>/);
+                        let foundTable = false;
+                        let tableLines = [];
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            if (lines[i].includes('|') && !foundTable) {
+                                foundTable = true;
+                                tableLines = [];
+                            }
+                            
+                            if (foundTable && lines[i].includes('|')) {
+                                tableLines.push(lines[i]);
+                            } else if (foundTable && tableLines.length > 0) {
+                                // End of table detected, convert to HTML table
+                                const tableHtml = convertToHtmlTable(tableLines);
+                                formattedMessage = formattedMessage.replace(
+                                    tableLines.join('\n'), 
+                                    tableHtml
+                                );
+                                foundTable = false;
+                            }
+                        }
+                        
+                        // In case the table is at the end of the message
+                        if (foundTable && tableLines.length > 0) {
+                            const tableHtml = convertToHtmlTable(tableLines);
+                            formattedMessage = formattedMessage.replace(
+                                tableLines.join('\n'), 
+                                tableHtml
+                            );
+                        }
+                    } catch (e) {
+                        console.error('Error formatting table:', e);
+                    }
+                }
+                
+                // Format bullet points
+                formattedMessage = formattedMessage.replace(/^\s*\*\s(.+)/gm, '<li>$1</li>');
+                formattedMessage = formattedMessage.replace(/(<li>.+<\/li>)+/g, '<ul>$&</ul>');
+                
+                // Format important data points with bold tags
+                formattedMessage = formattedMessage.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                
+                // Format code or technical info
+                formattedMessage = formattedMessage.replace(/`([^`]+)`/g, '<code>$1</code>');
+                
+                return formattedMessage;
+            }
+            
+            // Convert a text table to HTML table
+            function convertToHtmlTable(tableLines) {
+                let html = '<table>';
+                
+                // Process header
+                const headerCells = tableLines[0].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+                html += '<tr>';
+                headerCells.forEach(cell => {
+                    html += `<th>${cell}</th>`;
+                });
+                html += '</tr>';
+                
+                // Process data rows (skip header)
+                for (let i = 1; i < tableLines.length; i++) {
+                    // Skip separator line if it exists (e.g., |------|------|)
+                    if (tableLines[i].replace(/[\-|]+/g, '') === '') continue;
+                    
+                    const cells = tableLines[i].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+                    html += '<tr>';
+                    cells.forEach(cell => {
+                        html += `<td>${cell}</td>`;
+                    });
+                    html += '</tr>';
+                }
+                
+                html += '</table>';
+                return html;
             }
             
             // Send a message to the server and handle the response
