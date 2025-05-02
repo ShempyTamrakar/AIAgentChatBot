@@ -1375,7 +1375,7 @@
                         addBotMessage(data.response);
                         
                         // If we're in voice mode, also trigger voice response
-                        if (voiceChatInterface.classList.contains('active')) {
+                        if (document.getElementById('voiceChatInterface').classList.contains('active')) {
                             addVoiceResponse(data.response);
                         }
                     }
@@ -1436,13 +1436,11 @@
             scrollToBottom();
             
             // ----- Voice Interface Functionality ----- //
+            console.log("Initializing voice interface...");
             const chatTab = document.getElementById('chat-tab');
             const voiceTab = document.getElementById('voice-tab');
             const textChatInterface = document.getElementById('textChatInterface');
-            // Variable already defined earlier
-            if (!window.voiceChatInterface) {
-                window.voiceChatInterface = document.getElementById('voiceChatInterface');
-            }
+            const voiceChatInterface = document.getElementById('voiceChatInterface');
             const startRecordingButton = document.getElementById('startRecording');
             const stopRecordingButton = document.getElementById('stopRecording');
             const voiceStatusText = document.getElementById('voiceStatusText');
@@ -1450,13 +1448,19 @@
             const voiceMessages = document.getElementById('voiceMessages');
             const voiceAnimationOuter = document.getElementById('voiceAnimationOuter');
             
+            console.log("Voice interface elements:", {
+                voiceTab: voiceTab ? "Found" : "Missing",
+                voiceChatInterface: voiceChatInterface ? "Found" : "Missing",
+                startRecordingButton: startRecordingButton ? "Found" : "Missing",
+            });
+            
             // Make sure all elements are properly found
             function checkElements() {
                 const elements = [
                     { name: 'chatTab', el: chatTab },
                     { name: 'voiceTab', el: voiceTab },
                     { name: 'textChatInterface', el: textChatInterface },
-                    { name: 'voiceChatInterface', el: window.voiceChatInterface }
+                    { name: 'voiceChatInterface', el: voiceChatInterface }
                 ];
                 
                 let allFound = true;
@@ -1478,7 +1482,7 @@
                 chatTab.classList.add('active');
                 voiceTab.classList.remove('active');
                 textChatInterface.classList.add('active');
-                window.voiceChatInterface.classList.remove('active');
+                voiceChatInterface.classList.remove('active');
                 console.log('Switched to text chat');
             });
             
@@ -1488,7 +1492,7 @@
                 
                 voiceTab.classList.add('active');
                 chatTab.classList.remove('active');
-                window.voiceChatInterface.classList.add('active');
+                voiceChatInterface.classList.add('active');
                 textChatInterface.classList.remove('active');
                 console.log('Switched to voice chat');
             });
