@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="140" viewBox="0 0 120 140" version="1.1">
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes moveEye {
+            0%, 100% { r: 5; }
+            50% { r: 4.5; }
+        }
+        .robot {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+    
+    <g class="robot" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Shadow -->
+        <ellipse fill="#E0E0E0" cx="60" cy="130" rx="35" ry="6" opacity="0.5"></ellipse>
+        
+        <!-- Body -->
+        <rect x="40" y="60" width="40" height="30" rx="5" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1"></rect>
+        <circle cx="60" cy="75" r="5" fill="#E0E0E0"></circle>
+        
+        <!-- Arms -->
+        <!-- Left arm -->
+        <path d="M40,65 C35,65 28,70 25,75" stroke="#CCCCCC" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M25,75 C22,78 20,80 23,83" stroke="#CCCCCC" stroke-width="3" stroke-linecap="round"></path>
+        
+        <!-- Right arm -->
+        <path d="M80,65 C85,65 92,70 95,75" stroke="#CCCCCC" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M95,75 C98,78 100,80 97,83" stroke="#CCCCCC" stroke-width="3" stroke-linecap="round"></path>
+        
+        <!-- Legs -->
+        <!-- Left leg -->
+        <path d="M48,90 C48,95 48,105 45,110" stroke="#CCCCCC" stroke-width="4" stroke-linecap="round"></path>
+        <ellipse cx="45" cy="113" rx="6" ry="3" fill="#E0E0E0"></ellipse>
+        
+        <!-- Right leg -->
+        <path d="M72,90 C72,95 72,105 75,110" stroke="#CCCCCC" stroke-width="4" stroke-linecap="round"></path>
+        <ellipse cx="75" cy="113" rx="6" ry="3" fill="#E0E0E0"></ellipse>
+        
+        <!-- Head -->
+        <rect x="40" y="32" width="40" height="28" rx="14" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1"></rect>
+        
+        <!-- Eyes -->
+        <circle fill="#333333" cx="50" cy="45" r="5">
+            <animate attributeName="r" values="5;4.5;5" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle fill="#333333" cx="70" cy="45" r="5">
+            <animate attributeName="r" values="5;4.5;5" dur="3s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- White highlight in eyes -->
+        <circle fill="#FFFFFF" cx="48" cy="43" r="1.5"></circle>
+        <circle fill="#FFFFFF" cx="68" cy="43" r="1.5"></circle>
+        
+        <!-- Mouth -->
+        <path d="M52,55 C56,58 64,58 68,55" stroke="#333333" stroke-width="1.5" stroke-linecap="round">
+            <animate attributeName="d" values="M52,55 C56,58 64,58 68,55;M52,57 C56,60 64,60 68,57;M52,55 C56,58 64,58 68,55" dur="5s" repeatCount="indefinite" />
+        </path>
+        
+        <!-- Antenna -->
+        <line x1="60" y1="32" x2="60" y2="25" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round"></line>
+        <circle cx="60" cy="22" r="3" fill="#E0E0E0"></circle>
+        
+        <!-- Ear pieces -->
+        <rect x="34" y="40" width="6" height="12" rx="3" fill="#E0E0E0"></rect>
+        <rect x="80" y="40" width="6" height="12" rx="3" fill="#E0E0E0"></rect>
+    </g>
+</svg>

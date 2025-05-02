@@ -63,15 +63,21 @@
         
         @keyframes float {
             0%, 100% {
-                transform: translateY(0);
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-5px) rotate(-2deg);
             }
             50% {
-                transform: translateY(-5px);
+                transform: translateY(-8px) rotate(0deg);
+            }
+            75% {
+                transform: translateY(-5px) rotate(2deg);
             }
         }
         
         .chat-bubble .robot-icon {
-            animation: float 3s ease-in-out infinite;
+            animation: float 4s ease-in-out infinite;
         }
         
         .chat-popup {
@@ -238,14 +244,14 @@
         }
         
         /* Welcome message bubble animation */
-        @keyframes float {
+        @keyframes bubble-float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-5px); }
             100% { transform: translateY(0px); }
         }
         
         .initial-bubble {
-            animation: float 3s ease-in-out infinite;
+            animation: bubble-float 3s ease-in-out infinite;
             transition: opacity 0.5s ease-in-out;
         }
         
@@ -394,13 +400,13 @@
     </div>
     
     <div class="chat-bubble" id="chatButton">
-        <img src="/static/images/robot.svg" alt="AI Robot Assistant" class="robot-icon">
+        <img src="/static/images/floating_robot.svg" alt="AI Robot Assistant" class="robot-icon">
     </div>
     
     <div class="chat-popup" id="chatPopup">
         <div class="chat-popup-header">
             <div class="avatar-container">
-                <img src="/static/images/robot.svg" alt="AI Robot Assistant" class="robot-avatar-small">
+                <img src="/static/images/floating_robot.svg" alt="AI Robot Assistant" class="robot-avatar-small">
                 <h3>Data Center AI</h3>
             </div>
             <button class="close-chat" id="closeChat">✕</button>
