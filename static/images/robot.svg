@@ -2,44 +2,43 @@
 <svg width="120px" height="140px" viewBox="0 0 120 140" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
         <!-- Shadow -->
-        <ellipse fill="#F0F0F0" cx="60" cy="130" rx="35" ry="6"></ellipse>
+        <ellipse fill="#E0E0E0" cx="60" cy="130" rx="35" ry="6"></ellipse>
         
-        <!-- Body - Egg shaped -->
-        <path d="M35,60 C35,95 85,95 85,60 L85,50 C85,30 75,25 60,25 C45,25 35,30 35,50 L35,60 Z" fill="#D9E1E4"></path>
+        <!-- Body -->
+        <path d="M40,60 C40,95 80,95 80,60 L80,75 C80,90 40,90 40,75 L40,60 Z" fill="#FFFFFF"></path>
+        <path d="M40,75 L80,75" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round"></path>
         
         <!-- Body details -->
-        <path d="M40,70 L80,70" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"></path>
-        <path d="M40,85 L80,85" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"></path>
-        
-        <!-- Head/Face -->
-        <path d="M40,35 C40,20 80,20 80,35 L80,50 C80,65 40,65 40,50 L40,35 Z" fill="#1A2B4B"></path>
-        
-        <!-- Helmet/Visor -->
-        <path d="M38,35 C38,15 82,15 82,35" stroke="#E6EAED" stroke-width="10" stroke-linecap="round"></path>
-        
-        <!-- Eyes -->
-        <circle fill="#4DD0E1" cx="52" cy="40" r="5">
-            <animate attributeName="opacity" values="1;0.7;1" dur="3s" repeatCount="indefinite" />
-        </circle>
-        <circle fill="#4DD0E1" cx="68" cy="40" r="5">
-            <animate attributeName="opacity" values="1;0.7;1" dur="3s" repeatCount="indefinite" />
-        </circle>
+        <path d="M45,75 L75,75" stroke="#E8E8E8" stroke-width="5" stroke-linecap="round"></path>
         
         <!-- Arms -->
         <!-- Left arm -->
-        <line x1="35" y1="50" x2="22" y2="50" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></line>
-        <circle fill="#1A2B4B" cx="22" cy="50" r="3"></circle>
-        <line x1="22" y1="50" x2="15" y2="65" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></line>
-        <circle fill="#1A2B4B" cx="15" cy="65" r="3"></circle>
-        <path d="M15,65 C10,70 15,75 15,80" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></path>
-        <path d="M15,80 C10,85 20,85 15,90" stroke="#1A2B4B" stroke-width="5" stroke-linecap="round"></path>
-        
+        <path d="M40,60 C30,65 25,75 35,80" stroke="#F0F0F0" stroke-width="7" stroke-linecap="round"></path>
         <!-- Right arm -->
-        <line x1="85" y1="50" x2="98" y2="50" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></line>
-        <circle fill="#1A2B4B" cx="98" cy="50" r="3"></circle>
-        <line x1="98" y1="50" x2="105" y2="60" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></line>
-        <circle fill="#1A2B4B" cx="105" cy="60" r="3"></circle>
-        <path d="M105,60 C110,65 105,70 105,75" stroke="#D9E1E4" stroke-width="4" stroke-linecap="round"></path>
-        <circle fill="#1A2B4B" cx="105" cy="75" r="5"></circle>
+        <path d="M80,60 C90,65 95,75 85,80" stroke="#F0F0F0" stroke-width="7" stroke-linecap="round"></path>
+        
+        <!-- Head -->
+        <circle cx="60" cy="40" r="25" fill="#FFFFFF"></circle>
+        <path d="M40,40 C40,25 80,25 80,40 L80,50 C80,65 40,65 40,50 L40,40 Z" fill="#0D1E2A"></path>
+        
+        <!-- Helmet/Top -->
+        <path d="M38,35 C38,15 82,15 82,35" stroke="#E6EAED" stroke-width="8" stroke-linecap="round"></path>
+        
+        <!-- Side Pieces -->
+        <ellipse fill="#E6EAED" cx="35" cy="40" rx="5" ry="10"></ellipse>
+        <ellipse fill="#E6EAED" cx="85" cy="40" rx="5" ry="10"></ellipse>
+        
+        <!-- Eyes -->
+        <circle fill="#00E1DC" cx="50" cy="40" r="5">
+            <animate attributeName="opacity" values="1;0.8;1" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle fill="#00E1DC" cx="70" cy="40" r="5">
+            <animate attributeName="opacity" values="1;0.8;1" dur="3s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- Mouth -->
+        <path d="M55,50 C60,55 65,50 65,50" stroke="#00E1DC" stroke-width="2" stroke-linecap="round">
+            <animate attributeName="d" values="M55,50 C60,53 65,50 65,50;M55,53 C60,56 65,53 65,53;M55,50 C60,53 65,50 65,50" dur="5s" repeatCount="indefinite" />
+        </path>
     </g>
 </svg>
