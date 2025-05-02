@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="140px" viewBox="0 0 120 140" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Robot body -->
+        <ellipse fill="#EEEEEE" cx="60" cy="130" rx="30" ry="5"></ellipse> <!-- Shadow -->
+        
+        <!-- Body bottom half -->
+        <path d="M36,85 C36,110 84,110 84,85 L84,65 L36,65 L36,85 Z" fill="#CFD8DC"></path>
+        <path d="M40,85 L80,85" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"></path>
+        
+        <!-- Body top half -->
+        <path d="M36,42 L36,65 L84,65 L84,42 C84,30 72,20 60,20 C48,20 36,30 36,42 Z" fill="#CFD8DC"></path>
+        <path d="M40,55 L80,55" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round"></path>
+        
+        <!-- Head -->
+        <path d="M34,30 C34,16 86,16 86,30 L86,42 C86,56 34,56 34,42 L34,30 Z" fill="#1A237E"></path>
+        <path d="M34,30 C34,16 86,16 86,30" stroke="#CFD8DC" stroke-width="12" stroke-linecap="round"></path>
+        
+        <!-- Eyes -->
+        <circle fill="#4DD0E1" cx="48" cy="35" r="6">
+            <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle fill="#4DD0E1" cx="72" cy="35" r="6">
+            <animate attributeName="opacity" values="1;0.3;1" dur="3s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- Arms -->
+        <!-- Left arm -->
+        <path d="M36,45 L24,45 L18,60 L24,65" stroke="#1A237E" stroke-width="4" stroke-linecap="round" fill="none"></path>
+        <circle fill="#1A237E" cx="18" cy="65" r="6"></circle>
+        
+        <!-- Right arm -->
+        <path d="M84,45 L96,45 L102,50 L102,58" stroke="#1A237E" stroke-width="4" stroke-linecap="round" fill="none"></path>
+        <circle fill="#1A237E" cx="102" cy="62" r="6"></circle>
+    </g>
+</svg>

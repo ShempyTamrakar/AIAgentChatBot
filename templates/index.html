@@ -38,79 +38,44 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #4d7bf3, #2940b9);
+            background: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(41, 64, 185, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             transition: all 0.3s ease;
             overflow: hidden;
-            border: 2px solid #ffffff;
+            border: 2px solid #f0f0f0;
+            padding: 3px;
         }
         
         .chat-bubble:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(41, 64, 185, 0.4);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
         
-        /* Robot face elements */
-        .chat-bubble::before {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 18px;
-            background-color: #ffffff;
-            border-radius: 4px;
-            top: 22px;
-            left: 50%;
-            transform: translateX(-50%);
+        .chat-bubble .robot-icon {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         
-        .chat-bubble::after {
-            content: '';
-            position: absolute;
-            width: 36px;
-            height: 10px;
-            background-color: #ffffff;
-            border-radius: 4px;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 -14px 0 #ffffff;
-        }
-        
-        /* Robot eyes */
-        .chat-bubble .robot-eye-left,
-        .chat-bubble .robot-eye-right {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: #2940b9;
-            border-radius: 50%;
-            top: 26px;
-            animation: blink 3s infinite;
-        }
-        
-        .chat-bubble .robot-eye-left {
-            left: 19px;
-        }
-        
-        .chat-bubble .robot-eye-right {
-            right: 19px;
-        }
-        
-        @keyframes blink {
-            0%, 45%, 55%, 100% {
-                transform: scaleY(1);
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
             }
             50% {
-                transform: scaleY(0.1);
+                transform: translateY(-5px);
             }
+        }
+        
+        .chat-bubble .robot-icon {
+            animation: float 3s ease-in-out infinite;
         }
         
         .chat-popup {
@@ -150,61 +115,14 @@
         }
         
         /* Robot avatar in header */
-        .robot-avatar {
+        .robot-avatar-small {
             width: 30px;
             height: 30px;
-            background: linear-gradient(135deg, #4d7bf3, #2940b9);
             border-radius: 50%;
-            position: relative;
             margin-right: 10px;
-            border: 2px solid #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .robot-avatar::before {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 8px;
-            background-color: #ffffff;
-            border-radius: 2px;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-        
-        .robot-avatar::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 4px;
-            background-color: #ffffff;
-            border-radius: 2px;
-            bottom: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 -6px 0 #ffffff;
-        }
-        
-        .robot-avatar .robot-eye-left.small,
-        .robot-avatar .robot-eye-right.small {
-            width: 4px;
-            height: 4px;
-            background-color: #2940b9;
-            border-radius: 50%;
-            position: absolute;
-            top: 11px;
-            animation: blink 3s infinite;
-        }
-        
-        .robot-avatar .robot-eye-left.small {
-            left: 8px;
-        }
-        
-        .robot-avatar .robot-eye-right.small {
-            right: 8px;
+            background: white;
+            border: 1px solid #f0f0f0;
+            padding: 2px;
         }
         
         .close-chat {
@@ -484,18 +402,13 @@
     </div>
     
     <div class="chat-bubble" id="chatButton">
-        <!-- Robot eyes -->
-        <div class="robot-eye-left"></div>
-        <div class="robot-eye-right"></div>
+        <img src="/static/images/robot.svg" alt="AI Robot Assistant" class="robot-icon">
     </div>
     
     <div class="chat-popup" id="chatPopup">
         <div class="chat-popup-header">
             <div class="avatar-container">
-                <div class="robot-avatar">
-                    <div class="robot-eye-left small"></div>
-                    <div class="robot-eye-right small"></div>
-                </div>
+                <img src="/static/images/robot.svg" alt="AI Robot Assistant" class="robot-avatar-small">
                 <h3>Data Center AI</h3>
             </div>
             <button class="close-chat" id="closeChat">✕</button>

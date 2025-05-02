@@ -4,7 +4,7 @@ Flask web application for the Data Center Chatbot.
 
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_from_directory
 import pandas as pd
 import numpy as np
 import requests
