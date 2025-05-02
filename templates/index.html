@@ -271,8 +271,8 @@
         
         /* Examples dropdown */
         .examples-dropdown {
-            position: absolute;
-            bottom: 60px;
+            position: fixed;
+            bottom: 70px;
             left: 20px;
             width: 300px;
             background-color: var(--yondr-white);
@@ -280,7 +280,8 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 10px;
             display: none;
-            z-index: 1002;
+            z-index: 9999;
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
         
         .examples-dropdown h6 {
@@ -697,14 +698,29 @@
                 chatPopup.style.display = 'none';
             });
             
-            // Toggle examples dropdown
-            helpButton.addEventListener('click', () => {
-                examplesDropdown.style.display = examplesDropdown.style.display === 'block' ? 'none' : 'block';
+            // Toggle examples dropdown with improved functionality
+            helpButton.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent event from bubbling up
+                // Toggle visibility
+                if (examplesDropdown.style.display === 'block') {
+                    examplesDropdown.style.display = 'none';
+                } else {
+                    examplesDropdown.style.display = 'block';
+                    // Add a small animation to make it more noticeable
+                    examplesDropdown.style.opacity = '0';
+                    examplesDropdown.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        examplesDropdown.style.opacity = '1';
+                        examplesDropdown.style.transform = 'translateY(0)';
+                    }, 10);
+                }
             });
             
             // Hide examples dropdown when clicking elsewhere
             document.addEventListener('click', (event) => {
-                if (!examplesDropdown.contains(event.target) && event.target !== helpButton) {
+                if (examplesDropdown.style.display === 'block' && 
+                    !examplesDropdown.contains(event.target) && 
+                    event.target !== helpButton) {
                     examplesDropdown.style.display = 'none';
                 }
             });
