@@ -390,6 +390,218 @@
             text-decoration: underline;
         }
         
+        /* Voice Interface Styles */
+        .chat-interface {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .chat-interface.active {
+            display: flex;
+        }
+        
+        .voice-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .voice-robot-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin-bottom: 20px;
+        }
+        
+        .voice-robot-avatar {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: #f0f5ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+            margin: 10px auto;
+        }
+        
+        .robot-voice-avatar {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+        }
+        
+        .voice-animation-outer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .voice-animation-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle, transparent 40%, transparent 40%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .voice-animation-particles::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23FF4713' stroke-width='1'%3E%3Ccircle cx='70' cy='70' r='65'/%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.7;
+        }
+        
+        .voice-animation-active .voice-animation-particles {
+            opacity: 1;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.95);
+                opacity: 0.7;
+            }
+        }
+        
+        .voice-title {
+            margin-bottom: 15px;
+        }
+        
+        .voice-title h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--yondr-dark-gray);
+        }
+        
+        .ai-badge {
+            display: inline-block;
+            background-color: var(--yondr-orange);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin-left: 5px;
+            vertical-align: top;
+        }
+        
+        .voice-title p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        
+        .voice-status {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .voice-time {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .voice-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .voice-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .record-button {
+            background-color: var(--yondr-orange);
+            color: white;
+        }
+        
+        .stop-button {
+            background-color: #ff3b30;
+            color: white;
+        }
+        
+        .voice-messages {
+            padding: 15px;
+            overflow-y: auto;
+            background-color: var(--yondr-light-gray);
+            flex-grow: 1;
+            border-top: 1px solid var(--yondr-medium-gray);
+        }
+        
+        .talking-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--yondr-orange);
+            margin-left: 5px;
+            margin-right: 3px;
+            opacity: 0.5;
+        }
+        
+        .talking .talking-dot {
+            animation: pulseDot 1s infinite;
+        }
+        
+        .talking .talking-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .talking .talking-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
         /* Main content styling - Yondr theme */
         .page-header {
             text-align: left;
@@ -698,31 +910,71 @@
             </div>
             <button class="close-chat" id="closeChat">✕</button>
         </div>
-        
-        <div class="chat-popup-body" id="chatMessages">
-            <div class="chat-message bot-message">
-                Hello! I'm here to help with your information request. What would you like to know about our hyperscale data centers?
+
+        <!-- Text Chat Interface -->
+        <div id="textChatInterface" class="chat-interface active">
+            <div class="chat-popup-body" id="chatMessages">
+                <div class="chat-message bot-message">
+                    Hello! I'm here to help with your information request. What would you like to know about our hyperscale data centers?
+                </div>
+                
+                {% for message in chat_history %}
+                    <div class="chat-message user-message">{{ message.user }}</div>
+                    <div class="chat-message bot-message">{{ message.bot }}</div>
+                {% endfor %}
             </div>
             
-            {% for message in chat_history %}
-                <div class="chat-message user-message">{{ message.user }}</div>
-                <div class="chat-message bot-message">{{ message.bot }}</div>
-            {% endfor %}
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="userInput" placeholder="Type here...">
+                <button class="send-button" id="sendButton">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
         
-        <div class="chat-input-container">
-            <input type="text" class="chat-input" id="userInput" placeholder="Type here...">
-            <button class="send-button" id="sendButton">
-                <i class="fas fa-paper-plane"></i>
-            </button>
+        <!-- Voice Chat Interface -->
+        <div id="voiceChatInterface" class="chat-interface">
+            <div class="voice-container">
+                <div class="voice-robot-container">
+                    <div class="voice-animation-outer" id="voiceAnimationOuter">
+                        <div class="voice-animation-particles" id="voiceAnimationParticles"></div>
+                    </div>
+                    <div class="voice-robot-avatar">
+                        <img src="/static/images/yondr_robot.png?v=1" alt="YONDR Robot" class="robot-voice-avatar">
+                    </div>
+                </div>
+                
+                <div class="voice-title">
+                    <h3>Data Center Assistant<span class="ai-badge">AI</span></h3>
+                    <p>Ask me anything about your data centers</p>
+                </div>
+                
+                <div class="voice-status">
+                    <div id="voiceStatusText">Ready to listen</div>
+                    <div id="voiceTime" class="voice-time">00:00</div>
+                </div>
+                
+                <div class="voice-controls">
+                    <button id="startRecording" class="voice-button record-button">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="stopRecording" class="voice-button stop-button" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="voiceMessages" class="voice-messages">
+                <!-- Voice transcription and responses will be shown here -->
+            </div>
         </div>
         
         <div class="chat-tabs">
-            <a href="#" class="chat-tab active">
+            <a href="#" class="chat-tab active" id="chat-tab">
                 <i class="fas fa-comments"></i>
                 <span>Chat</span>
             </a>
-            <a href="#" class="chat-tab">
+            <a href="#" class="chat-tab" id="voice-tab">
                 <i class="fas fa-microphone"></i>
                 <span>Voice</span>
             </a>
