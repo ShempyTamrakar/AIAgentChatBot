@@ -471,6 +471,77 @@
             opacity: 0.7;
         }
         
+        .voice-animation-particles::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none'%3E%3Ccircle cx='70' cy='70' r='60' stroke='%23FF4713' stroke-width='0.5' stroke-dasharray='2,2' /%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        
+        /* Add particle dots around the circle */
+        .voice-animation-active .voice-animation-particles {
+            position: relative;
+        }
+        
+        .voice-animation-active .voice-animation-particles::before,
+        .voice-animation-active .voice-animation-particles::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 1;
+        }
+        
+        /* Create the dots animation */
+        @keyframes moveDots {
+            0%, 100% { opacity: 0.4; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        
+        .voice-animation-active .voice-robot-container::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            z-index: 0;
+            background-image: 
+                radial-gradient(circle 2px at 20% 30%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 30% 65%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 40% 10%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 50% 80%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 60% 20%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 70% 60%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 80% 40%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 90% 70%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 15% 50%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 35% 70%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 55% 35%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 75% 50%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 95% 25%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 10% 90%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 1px at 25% 15%, var(--yondr-orange) 100%, transparent 0),
+                radial-gradient(circle 2px at 45% 85%, var(--yondr-orange) 100%, transparent 0);
+            opacity: 0.6;
+            animation: moveDots 3s infinite alternate;
+        }
+        
+        .voice-animation-active .voice-animation-particles::after {
+            animation: rotate 10s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .voice-animation-active .voice-animation-particles {
             opacity: 1;
             animation: pulse 1.5s ease-in-out infinite;
@@ -1237,6 +1308,11 @@
                         addBotMessage('Sorry, an error occurred: ' + data.error);
                     } else {
                         addBotMessage(data.response);
+                        
+                        // If we're in voice mode, also trigger voice response
+                        if (voiceChatInterface.classList.contains('active')) {
+                            addVoiceResponse(data.response);
+                        }
                     }
                 })
                 .catch(error => {
@@ -1293,6 +1369,183 @@
             
             // Scroll to the bottom of the chat on page load
             scrollToBottom();
+            
+            // ----- Voice Interface Functionality ----- //
+            const chatTab = document.getElementById('chat-tab');
+            const voiceTab = document.getElementById('voice-tab');
+            const textChatInterface = document.getElementById('textChatInterface');
+            const voiceChatInterface = document.getElementById('voiceChatInterface');
+            const startRecordingButton = document.getElementById('startRecording');
+            const stopRecordingButton = document.getElementById('stopRecording');
+            const voiceStatusText = document.getElementById('voiceStatusText');
+            const voiceTime = document.getElementById('voiceTime');
+            const voiceMessages = document.getElementById('voiceMessages');
+            const voiceAnimationOuter = document.getElementById('voiceAnimationOuter');
+            
+            // Switch between chat and voice interfaces
+            chatTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                chatTab.classList.add('active');
+                voiceTab.classList.remove('active');
+                textChatInterface.classList.add('active');
+                voiceChatInterface.classList.remove('active');
+            });
+            
+            voiceTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                voiceTab.classList.add('active');
+                chatTab.classList.remove('active');
+                voiceChatInterface.classList.add('active');
+                textChatInterface.classList.remove('active');
+            });
+            
+            // Voice recognition variables
+            let recognition;
+            let recordingStartTime;
+            let recordingTimer;
+            let isSpeaking = false;
+            
+            // Initialize speech recognition if available
+            function initSpeechRecognition() {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'en-US';
+                    
+                    recognition.onstart = function() {
+                        voiceStatusText.textContent = 'Listening...';
+                        recordingStartTime = Date.now();
+                        updateRecordingTime();
+                    };
+                    
+                    recognition.onresult = function(event) {
+                        let interimTranscript = '';
+                        let finalTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            if (event.results[i].isFinal) {
+                                finalTranscript += event.results[i][0].transcript;
+                            } else {
+                                interimTranscript += event.results[i][0].transcript;
+                            }
+                        }
+                        
+                        if (finalTranscript) {
+                            // Send the final transcript to the chatbot
+                            sendVoiceMessage(finalTranscript);
+                            stopRecording();
+                        } else if (interimTranscript) {
+                            // Update the status with interim results
+                            voiceStatusText.textContent = 'Listening: ' + interimTranscript;
+                        }
+                    };
+                    
+                    recognition.onerror = function(event) {
+                        console.error('Speech recognition error:', event.error);
+                        voiceStatusText.textContent = 'Error: ' + event.error;
+                        stopRecording();
+                    };
+                    
+                    recognition.onend = function() {
+                        voiceStatusText.textContent = 'Ready to listen';
+                        clearInterval(recordingTimer);
+                    };
+                    
+                    return true;
+                } else {
+                    voiceStatusText.textContent = 'Speech recognition not supported in this browser';
+                    return false;
+                }
+            }
+            
+            // Start recording voice
+            startRecordingButton.addEventListener('click', function() {
+                if (initSpeechRecognition()) {
+                    startRecordingButton.style.display = 'none';
+                    stopRecordingButton.style.display = 'flex';
+                    try {
+                        recognition.start();
+                    } catch (error) {
+                        console.error('Error starting speech recognition:', error);
+                        voiceStatusText.textContent = 'Error starting voice recognition';
+                    }
+                } else {
+                    voiceStatusText.textContent = 'Speech recognition not supported';
+                }
+            });
+            
+            // Stop recording voice
+            stopRecordingButton.addEventListener('click', function() {
+                stopRecording();
+            });
+            
+            // Update the recording time
+            function updateRecordingTime() {
+                recordingTimer = setInterval(function() {
+                    const elapsedTime = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+                    const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+                    voiceTime.textContent = `${minutes}:${seconds}`;
+                }, 1000);
+            }
+            
+            // Stop recording
+            function stopRecording() {
+                if (recognition) {
+                    recognition.stop();
+                }
+                startRecordingButton.style.display = 'flex';
+                stopRecordingButton.style.display = 'none';
+                clearInterval(recordingTimer);
+                voiceTime.textContent = '00:00';
+            }
+            
+            // Send voice message to chatbot
+            function sendVoiceMessage(message) {
+                // Create user message element
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.className = 'chat-message user-message';
+                userMessageDiv.textContent = message;
+                voiceMessages.appendChild(userMessageDiv);
+                voiceMessages.scrollTop = voiceMessages.scrollHeight;
+                
+                // Process normally through the sendMessage function
+                sendMessage(message);
+            }
+            
+            // Add bot's voice response with animation
+            function addVoiceResponse(message) {
+                // Start the animation
+                voiceAnimationOuter.classList.add('voice-animation-active');
+                
+                // Update status to "Talking"
+                voiceStatusText.innerHTML = 'Talking <span class="talking-dot"></span><span class="talking-dot"></span><span class="talking-dot"></span>';
+                voiceStatusText.classList.add('talking');
+                
+                // Create bot message element
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot-message';
+                
+                // Format the message with tables if needed
+                const formattedMessage = formatBotMessage(message);
+                botMessageDiv.innerHTML = formattedMessage;
+                
+                voiceMessages.appendChild(botMessageDiv);
+                voiceMessages.scrollTop = voiceMessages.scrollHeight;
+                
+                // Simulate the time it would take to read the message
+                // We'll use 100ms per character as an approximation
+                const speakingTime = Math.max(2000, message.length * 40);
+                
+                // After the "speaking" time, stop the animation
+                setTimeout(function() {
+                    voiceAnimationOuter.classList.remove('voice-animation-active');
+                    voiceStatusText.textContent = 'Ready to listen';
+                    voiceStatusText.classList.remove('talking');
+                }, speakingTime);
+            }
         });
     </script>
 </body>
