@@ -273,7 +273,7 @@ class DataCenterChatbot:
                 return response
             
             # How many maintenance tasks were performed on servers vs. network devices?
-            if any(phrase in user_input for phrase in ["maintenance tasks on servers vs network devices", "compare server and network device maintenance", "maintenance count by entity type"]):
+            if any(phrase in user_input.lower() for phrase in ["maintenance tasks", "maintenance count"]) or ("maintenance" in user_input.lower() and "vs" in user_input.lower()) or ("maintenance" in user_input.lower() and "compare" in user_input.lower()) or ("maintenance" in user_input.lower() and "entity type" in user_input.lower()):
                 results = self.execute_query("""
                     SELECT entity_type, COUNT(*) as maintenance_count
                     FROM maintenance_logs
@@ -290,7 +290,7 @@ class DataCenterChatbot:
                 return response
             
             # Which servers had maintenance in 2023?
-            if any(phrase in user_input for phrase in ["servers with maintenance in 2023", "2023 server maintenance", "servers maintained in 2023"]):
+            if "2023" in user_input and ("maintenance" in user_input.lower() or "maintained" in user_input.lower()) and "server" in user_input.lower():
                 results = self.execute_query("""
                     SELECT s.hostname, s.ip_address, ml.maintenance_date, ml.performed_by, ml.notes
                     FROM maintenance_logs ml
