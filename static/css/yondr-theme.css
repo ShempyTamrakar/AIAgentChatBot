@@ -1,0 +1,80 @@
+/* Yondr Theme CSS */
+:root {
+    --yondr-dark-gray: #333333;
+    --yondr-orange: #FF4713;
+    --yondr-white: #FFFFFF;
+    --yondr-light-gray: #F5F5F5;
+    --yondr-medium-gray: #CCCCCC;
+}
+
+/* Robot animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-5px) rotate(-2deg);
+    }
+    50% {
+        transform: translateY(-8px) rotate(0deg);
+    }
+    75% {
+        transform: translateY(-5px) rotate(2deg);
+    }
+}
+
+.robot-floating {
+    animation: float 4s ease-in-out infinite;
+}
+
+/* Yondr typography */
+.yondr-heading {
+    font-weight: bold;
+    color: var(--yondr-dark-gray);
+    text-transform: uppercase;
+}
+
+.yondr-subheading {
+    color: var(--yondr-orange);
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.yondr-button {
+    background-color: var(--yondr-orange);
+    color: var(--yondr-white);
+    font-weight: bold;
+    text-transform: uppercase;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 0;
+    transition: background-color 0.3s;
+}
+
+.yondr-button:hover {
+    background-color: #e03e10;
+    color: var(--yondr-white);
+}
+
+/* Card styles */
+.yondr-card {
+    background-color: var(--yondr-white);
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    border: 1px solid var(--yondr-medium-gray);
+    transition: transform 0.2s;
+}
+
+.yondr-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--yondr-orange);
+}
+
+.yondr-card-title {
+    color: var(--yondr-dark-gray);
+    border-bottom: 2px solid var(--yondr-orange);
+    padding-bottom: 0.5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}

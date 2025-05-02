@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Center Information System</title>
+    <title>Yondr Data Center Chatbot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
@@ -27,7 +27,7 @@
         
         .container {
             flex: 1 0 auto;
-            margin-top: 2rem;
+            margin-top: 0;
             margin-bottom: 2rem;
             padding-bottom: 80px; /* Space for chatbot button */
         }
@@ -308,24 +308,47 @@
             text-decoration: underline;
         }
         
-        /* Main content styling */
+        /* Main content styling - Yondr theme */
         .page-header {
-            text-align: center;
+            text-align: left;
             margin-bottom: 3rem;
+            padding-top: 4rem;
         }
         
         .page-header h1 {
             font-weight: bold;
             color: var(--yondr-dark-gray);
-            margin-bottom: 1rem;
+            margin-bottom: 0;
             font-size: 3.5rem;
             text-transform: uppercase;
+            line-height: 1;
         }
         
         .page-header .subtitle {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
+            color: var(--yondr-dark-gray);
+            font-weight: bold;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        
+        .page-header .tagline {
+            font-size: 3.5rem;
             color: var(--yondr-orange);
             font-weight: bold;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        
+        .page-header .tomorrow-text {
+            color: #de9951;
+            font-size: 1.2rem;
+            margin-top: 1rem;
+        }
+        
+        .page-header .constraints-text {
+            color: var(--yondr-dark-gray);
+            font-size: 1.2rem;
         }
         
         .system-cards {
@@ -333,6 +356,7 @@
             flex-wrap: wrap;
             gap: 1.5rem;
             justify-content: center;
+            margin-top: 4rem;
         }
         
         .system-card {
@@ -378,6 +402,7 @@
         .navbar {
             background-color: var(--yondr-white);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0.5rem 0;
         }
         
         .navbar-brand {
@@ -386,14 +411,17 @@
             font-size: 1.5rem;
         }
         
-        .navbar-brand span {
-            color: var(--yondr-orange);
+        .navbar-brand img {
+            height: 40px;
         }
         
         .nav-link {
             color: var(--yondr-dark-gray) !important;
             font-weight: 500;
             margin: 0 10px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
         }
         
         .nav-link:hover, .nav-link:focus {
@@ -409,13 +437,54 @@
             background-color: #e03e10;
             border-color: #e03e10;
         }
+        
+        .investor-portal {
+            background-color: var(--yondr-orange);
+            color: white !important;
+            padding: 0.5rem 1rem !important;
+            border-radius: 0;
+            margin-left: 20px;
+        }
+        
+        .investor-portal:hover {
+            background-color: #e03e10;
+            color: white !important;
+        }
+        
+        .products-link {
+            position: relative;
+            margin-right: 2rem;
+        }
+        
+        .products-arrow {
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--yondr-orange);
+        }
+        
+        .why-yondr-link {
+            position: relative;
+            margin-right: 2rem;
+        }
+        
+        .why-yondr-arrow {
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--yondr-orange);
+        }
     </style>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container">
-                <a class="navbar-brand" href="#"><span>YONDR</span> Data Centers</a>
+                <a class="navbar-brand" href="#">
+                    <img src="https://yondrgroup.com/wp-content/themes/yondr/assets/images/logo-orange.svg" alt="Yondr">
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -423,8 +492,17 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item"><a href="#" class="nav-link">ABOUT US</a></li>
                         <li class="nav-item"><a href="#" class="nav-link">LOCATIONS</a></li>
-                        <li class="nav-item"><a href="#" class="nav-link">PRODUCTS</a></li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link products-link">PRODUCTS
+                                <span class="products-arrow">→</span>
+                            </a>
+                        </li>
+                        <li class="nav-item"><a href="#" class="nav-link">OUR PEOPLE</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link">INTEL</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link">NEWSROOM</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link">JOIN US</a></li>
                         <li class="nav-item"><a href="#" class="nav-link">CONTACT</a></li>
+                        <li class="nav-item"><a href="#" class="nav-link investor-portal">INVESTOR PORTAL</a></li>
                     </ul>
                 </div>
             </div>
@@ -436,26 +514,37 @@
             <div class="page-header">
                 <h1>HYPERSCALE</h1>
                 <div class="subtitle">DATA CENTERS</div>
-                <div class="subtitle" style="color: var(--yondr-orange);">TAILORED TO YOU.</div>
-                <p class="lead mt-4">Intelligent infrastructure for tomorrow's needs</p>
+                <div class="tagline">TAILORED TO YOU.</div>
+                <p class="tomorrow-text">tomorrow <span class="constraints-text">without constraints</span></p>
+                
+                <div class="mt-4">
+                    <a href="#" class="text-decoration-none">
+                        <span class="products-link me-3 text-dark">PRODUCTS</span>
+                        <span class="products-arrow text-danger">→</span>
+                    </a>
+                    <a href="#" class="text-decoration-none ms-4">
+                        <span class="why-yondr-link me-3 text-dark">WHY YONDR</span>
+                        <span class="why-yondr-arrow text-danger">→</span>
+                    </a>
+                </div>
             </div>
             
             <div class="system-cards">
                 <div class="system-card">
                     <h3>Data Centers</h3>
-                    <p>We operate 5 data centers across the United States, providing robust infrastructure for our services.</p>
+                    <p>We operate hyperscale data centers across multiple regions, providing robust and sustainable infrastructure for our global clients.</p>
                     <p>Total Power Capacity: 23,000 kW</p>
                 </div>
                 
                 <div class="system-card">
                     <h3>Server Infrastructure</h3>
-                    <p>Our server fleet consists of high-performance equipment to support business operations.</p>
+                    <p>Our server fleet consists of high-performance, energy-efficient equipment to support mission-critical business operations.</p>
                     <p>Server Count: 15 active servers</p>
                 </div>
                 
                 <div class="system-card">
                     <h3>Network Connectivity</h3>
-                    <p>Redundant network pathways ensure 99.99% uptime across all services.</p>
+                    <p>Redundant network pathways ensure 99.99% uptime across all services with enhanced security protocols.</p>
                     <p>Network Devices: Various switches and routers</p>
                 </div>
             </div>
@@ -470,13 +559,13 @@
     </div>
     
     <div class="chat-bubble" id="chatButton">
-        <img src="/static/images/robot_icon.svg" alt="AI Robot Assistant" class="robot-icon">
+        <img src="/static/images/yondr_robot.svg" alt="AI Robot Assistant" class="robot-icon">
     </div>
     
     <div class="chat-popup" id="chatPopup">
         <div class="chat-popup-header">
             <div class="avatar-container">
-                <img src="/static/images/robot_icon.svg" alt="AI Robot Assistant" class="robot-avatar-small">
+                <img src="/static/images/yondr_robot.svg" alt="AI Robot Assistant" class="robot-avatar-small">
                 <h3>YONDR Data Center AI</h3>
             </div>
             <button class="close-chat" id="closeChat">✕</button>
