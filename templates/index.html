@@ -673,6 +673,13 @@
             font-size: 18px;
         }
         
+        .back-button {
+            background-color: var(--yondr-dark-gray);
+            color: white;
+            margin-left: 10px;
+            font-size: 18px;
+        }
+        
         .voice-messages {
             padding: 15px;
             overflow-y: auto;
@@ -1163,6 +1170,9 @@
                     <button id="speakResponse" class="voice-button speak-button" title="Speak last response">
                         <i class="fas fa-volume-up"></i>
                     </button>
+                    <button id="backToChat" class="voice-button back-button" title="Back to text chat">
+                        <i class="fas fa-comment-alt"></i>
+                    </button>
                 </div>
             </div>
             
@@ -1607,6 +1617,14 @@
             voiceTab.addEventListener('click', function(e) {
                 e.preventDefault();
                 switchToVoiceChat();
+            });
+            
+            // Back to chat button in voice interface
+            const backToChatButton = document.getElementById('backToChat');
+            backToChatButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log("Back to chat button clicked");
+                switchToTextChat();
             });
             
             // Ensure tabs are working by adding redundant event listeners
