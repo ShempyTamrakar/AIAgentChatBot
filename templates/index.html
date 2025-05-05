@@ -337,15 +337,21 @@
         /* Tab navigation */
         .chat-tabs {
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between; /* Changed from space-around */
             padding: 10px 0;
             background-color: var(--yondr-white);
             border-top: 1px solid var(--yondr-medium-gray);
+            width: 100%; /* Ensure it takes full width */
         }
         
         .chat-tab {
             padding: 8px 0;
             text-align: center;
+            flex: 1; /* Make each tab take equal space */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             flex-grow: 1;
             color: var(--yondr-dark-gray);
             font-size: 12px;
@@ -379,7 +385,7 @@
         /* Examples dropdown */
         .examples-dropdown {
             position: fixed;
-            bottom: 130px; /* Positioned directly above the button */
+            bottom: 145px; /* Positioned directly above the button with more space */
             right: 20px; /* Aligned with the button */
             width: 300px;
             background-color: var(--yondr-white);
@@ -389,6 +395,8 @@
             display: none;
             z-index: 9999;
             transition: opacity 0.2s ease, transform 0.2s ease;
+            max-height: 400px; /* Prevent it from getting too tall */
+            overflow-y: auto; /* Add scrolling if needed */
         }
         
         .examples-dropdown h6 {
@@ -995,14 +1003,60 @@
         
         /* Make tables responsive */
         @media screen and (max-width: 768px) {
-            .yondr-data-table {
+            .yondr-data-table, 
+            .data-table {
                 display: block;
                 overflow-x: auto;
+                width: 100% !important;
+                max-width: 100%;
+                margin: 0 auto;
+                font-size: 0.9em;
             }
             
             .yondr-data-table th,
-            .yondr-data-table td {
+            .yondr-data-table td,
+            .data-table th,
+            .data-table td {
+                padding: 8px;
+                font-size: 0.9em;
                 white-space: nowrap;
+            }
+
+            /* Ensure chat messages don't create horizontal overflow */
+            .chat-message {
+                max-width: 100%;
+                word-break: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* Make chat container not overflow */
+            .chat-popup-body {
+                max-width: 100%;
+                padding: 10px;
+            }
+            
+            /* Improve tab display on mobile */
+            .chat-tab {
+                padding: 10px 5px;
+                font-size: 12px;
+            }
+            
+            .chat-popup {
+                width: 95%;  /* Take up most of the screen width on mobile */
+                max-width: 95%;
+                max-height: 80vh; /* Limit height on mobile */
+                bottom: 10px;
+                right: 10px; /* Position closer to the edge */
+            }
+
+            /* Adjust voice interface for better mobile experience */
+            .voice-controls {
+                gap: 10px; /* Less space between buttons */
+            }
+            
+            .voice-button {
+                width: 50px; /* Smaller buttons */
+                height: 50px;
             }
         }
         
@@ -1283,6 +1337,10 @@
             
             // Close chat popup
             closeChat.addEventListener('click', () => {
+                // Stop any ongoing speech when chat is closed
+                if (isSpeaking) {
+                    stopSpeech();
+                }
                 chatPopup.style.display = 'none';
             });
             
@@ -1674,7 +1732,6 @@
             let recognition;
             let recordingStartTime;
             let recordingTimer;
-            let isSpeaking = false;
             
             // Initialize speech recognition if available
             function initSpeechRecognition() {
@@ -1686,6 +1743,11 @@
                     recognition.lang = 'en-US';
                     
                     recognition.onstart = function() {
+                        // Stop any ongoing speech when user starts speaking
+                        if (isSpeaking) {
+                            stopSpeech();
+                        }
+                        
                         voiceStatusText.textContent = 'Listening...';
                         recordingStartTime = Date.now();
                         updateRecordingTime();
@@ -1793,12 +1855,37 @@
             let speechSynthesis = window.speechSynthesis;
             let voiceSpeaking = false;
             
+            // Global variable to track speech state
+            // Note: this replaces the voiceSpeaking variable for better consistency
+            let isSpeaking = false;
+            
+            // Function to stop any ongoing speech
+            function stopSpeech() {
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.cancel();
+                    isSpeaking = false;
+                    
+                    // Reset animation and status
+                    voiceAnimationOuter.classList.remove('voice-animation-active');
+                    voiceStatusText.textContent = 'Ready to listen';
+                    voiceStatusText.classList.remove('talking');
+                    
+                    // Clear any intervals that might be keeping speech alive
+                    if (window.speechKeepAliveInterval) {
+                        clearInterval(window.speechKeepAliveInterval);
+                        window.speechKeepAliveInterval = null;
+                    }
+                    
+                    console.log("Speech stopped");
+                }
+            }
+            
             // Function to speak text using speech synthesis with user interaction
             function speakText(text) {
                 // Check if speech synthesis is available
                 if ('speechSynthesis' in window) {
                     // Cancel any ongoing speech
-                    speechSynthesis.cancel();
+                    stopSpeech();
                     
                     // Activate animation
                     voiceAnimationOuter.classList.add('voice-animation-active');
@@ -1816,6 +1903,9 @@
                     utterance.rate = 1.0; // 0.1 to 10
                     utterance.pitch = 1.0; // 0 to 2
                     utterance.lang = 'en-US';
+                    
+                    // Set speaking state
+                    isSpeaking = true;
                     
                     // Handle voice loading more consistently across browsers
                     // Some browsers load voices synchronously, others asynchronously
@@ -1890,14 +1980,14 @@
                         
                         // Set up event handlers
                         utterance.onstart = function(event) {
-                            voiceSpeaking = true;
+                            isSpeaking = true;
                             console.log('Speech started successfully', event);
                             // Make sure animation is active
                             voiceAnimationOuter.classList.add('voice-animation-active');
                         };
                         
                         utterance.onend = function(event) {
-                            voiceSpeaking = false;
+                            isSpeaking = false;
                             console.log('Speech ended', event);
                             // End animation
                             voiceAnimationOuter.classList.remove('voice-animation-active');
@@ -1907,7 +1997,7 @@
                         
                         utterance.onerror = function(event) {
                             console.error('Speech error:', event);
-                            voiceSpeaking = false;
+                            isSpeaking = false;
                             voiceAnimationOuter.classList.remove('voice-animation-active');
                             voiceStatusText.textContent = 'Speech error';
                             voiceStatusText.classList.remove('talking');
@@ -1957,7 +2047,7 @@
                                 // Clear the interval when speech ends
                                 utterance.onend = function(event) {
                                     clearInterval(resumeInterval);
-                                    voiceSpeaking = false;
+                                    isSpeaking = false;
                                     console.log('Speech ended successfully', event);
                                     voiceAnimationOuter.classList.remove('voice-animation-active');
                                     voiceStatusText.textContent = 'Ready to listen';

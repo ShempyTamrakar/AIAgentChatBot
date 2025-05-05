@@ -53,7 +53,7 @@ class DataCenterChatbot:
             headers = list(data[0].keys())
         
         # Create HTML table with proper structure and styling
-        html_table = "<table class='data-table'>\n"
+        html_table = "<table class='yondr-data-table'>\n"
         
         # Add header row
         html_table += "  <thead>\n    <tr>\n"
