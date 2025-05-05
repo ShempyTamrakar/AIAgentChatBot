@@ -1095,14 +1095,20 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     """Handle chat interactions."""
+    logger.info("Chat endpoint called")
     user_input = request.json.get('message', '')
     
+    logger.info(f"Received user input: {user_input}")
+    
     if not user_input:
+        logger.warning("No message provided in request")
         return jsonify({'error': 'No message provided'}), 400
     
     try:
         # Process the user input
+        logger.info("Processing user input through chatbot")
         response = chatbot.process_input(user_input)
+        logger.info(f"Chatbot response generated: {response[:50]}...")
         
         # Update chat history
         if 'chat_history' not in session:
@@ -1119,6 +1125,7 @@ def chat():
         
         session.modified = True
         
+        logger.info("Returning response to client")
         return jsonify({
             'response': response,
             'history': session['chat_history']

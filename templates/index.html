@@ -1454,6 +1454,8 @@
             
             // Send a message to the server and handle the response
             function sendMessage(message) {
+                console.log("sendMessage function called with:", message);
+                
                 // Add the user message to the chat
                 addUserMessage(message);
                 
@@ -1461,6 +1463,7 @@
                 userInput.value = '';
                 
                 // Send the message to the server
+                console.log("Sending fetch request to /chat endpoint");
                 fetch('/chat', {
                     method: 'POST',
                     headers: {
@@ -1468,21 +1471,30 @@
                     },
                     body: JSON.stringify({ message: message })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log("Response received from server:", response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log("Response data:", data);
                     if (data.error) {
+                        console.error("Error in response:", data.error);
                         addBotMessage('Sorry, an error occurred: ' + data.error);
                     } else {
+                        console.log("Adding bot response to chat");
                         addBotMessage(data.response);
                         
                         // If we're in voice mode, also trigger voice response
-                        if (document.getElementById('voiceChatInterface').classList.contains('active')) {
+                        const voiceActive = document.getElementById('voiceChatInterface').classList.contains('active');
+                        console.log("Voice interface active:", voiceActive);
+                        if (voiceActive) {
+                            console.log("Triggering voice response");
                             addVoiceResponse(data.response);
                         }
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Fetch Error:', error);
                     addBotMessage('Sorry, an error occurred while processing your request.');
                 });
             }
@@ -1763,6 +1775,8 @@
             
             // Send voice message to chatbot
             function sendVoiceMessage(message) {
+                console.log("Voice message received:", message);
+                
                 // Create user message element
                 const userMessageDiv = document.createElement('div');
                 userMessageDiv.className = 'chat-message user-message';
@@ -1771,6 +1785,7 @@
                 voiceMessages.scrollTop = voiceMessages.scrollHeight;
                 
                 // Process normally through the sendMessage function
+                console.log("Sending voice message to the chatbot...");
                 sendMessage(message);
             }
             
