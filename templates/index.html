@@ -337,28 +337,30 @@
         /* Tab navigation */
         .chat-tabs {
             display: flex;
-            justify-content: space-between; /* Changed from space-around */
+            justify-content: space-between;
             padding: 10px 0;
             background-color: var(--yondr-white);
             border-top: 1px solid var(--yondr-medium-gray);
-            width: 100%; /* Ensure it takes full width */
+            width: 100%;
+            position: relative;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
         
         .chat-tab {
-            padding: 8px 0;
+            padding: 8px 15px;
             text-align: center;
             flex: 1; /* Make each tab take equal space */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
             color: var(--yondr-dark-gray);
-            font-size: 12px;
+            font-size: 14px;
             text-decoration: none;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border-top: 3px solid transparent;
         }
         
         .chat-tab i {
@@ -368,6 +370,13 @@
         
         .chat-tab.active {
             color: var(--yondr-orange);
+            border-top: 3px solid var(--yondr-orange);
+            background-color: rgba(255, 71, 19, 0.05);
+            font-weight: 600;
+        }
+        
+        .chat-tab:hover {
+            background-color: rgba(255, 71, 19, 0.03);
         }
         
         /* Welcome message bubble animation */
@@ -391,7 +400,7 @@
             background-color: var(--yondr-white);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 10px;
+            padding: 15px;
             display: none;
             z-index: 9999;
             transition: opacity 0.2s ease, transform 0.2s ease;
@@ -400,10 +409,12 @@
         }
         
         .examples-dropdown h6 {
-            font-size: 14px;
-            margin: 0 0 8px 0;
+            font-size: 16px;
+            margin: 0 0 12px 0;
             color: var(--yondr-dark-gray);
             font-weight: bold;
+            border-bottom: 1px solid var(--yondr-light-gray);
+            padding-bottom: 8px;
         }
         
         .examples-dropdown ul {
@@ -413,18 +424,28 @@
         }
         
         .examples-dropdown li {
-            padding: 5px 0;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--yondr-light-gray);
+        }
+        
+        .examples-dropdown li:last-child {
+            border-bottom: none;
         }
         
         .example-question {
             text-decoration: none;
             color: var(--yondr-orange);
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
+            display: block;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
         }
         
         .example-question:hover {
-            text-decoration: underline;
+            background-color: rgba(255, 71, 19, 0.05);
+            text-decoration: none;
         }
         
         /* Voice Interface Styles */
@@ -432,6 +453,9 @@
             display: none;
             flex-direction: column;
             height: 100%;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
         }
         
         .chat-interface.active {
@@ -783,6 +807,20 @@
                 left: 5%;
                 max-width: none;
                 bottom: 70px;
+            }
+            
+            .chat-tabs {
+                padding: 8px 0;
+            }
+            
+            .chat-tab {
+                padding: 10px 5px;
+                font-size: 12px;
+            }
+            
+            .chat-tab i {
+                font-size: 18px;
+                margin-bottom: 5px;
             }
         }
         

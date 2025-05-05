@@ -123,20 +123,43 @@ class DataCenterChatbot:
         try:
             # =================== Location & Data Center Questions ===================
             
+            # How many data centers do we have?
+            if any(phrase in user_input for phrase in ["how many data centers do we have", "how many data centres do we have", "number of data centers", "count of data centers"]):
+                results = self.execute_query("""
+                    SELECT COUNT(data_center_id) as total_count
+                    FROM data_centers
+                """)
+                if not results:
+                    return "I couldn't find any data centers in our system."
+                
+                # Format as a table for better display
+                total_count = results[0]['total_count']
+                
+                # Create a list of dictionaries for the table formatter
+                table_data = [{"Count": total_count}]
+                
+                response = "Here's the total number of data centers we currently have:\n\n"
+                table = self.format_as_markdown_table(table_data)
+                response += table
+                return response
+            
             # Which cities have data centers?
             if any(phrase in user_input for phrase in ["which cities have data centers", "cities with data centers", "data center cities"]):
                 results = self.execute_query("""
-                    SELECT DISTINCT l.city, l.country
+                    SELECT DISTINCT l.city, l.country, COUNT(dc.data_center_id) as dc_count
                     FROM locations l
                     JOIN data_centers dc ON l.location_id = dc.location_id
+                    GROUP BY l.city, l.country
                     ORDER BY l.country, l.city
                 """)
                 if not results:
                     return "I couldn't find any cities with data centers in our system."
                 
+                # Format as a table for better display
                 response = "Here are the cities that have data centers:\n\n"
-                for i, loc in enumerate(results, 1):
-                    response += f"{i}. {loc['city']}, {loc['country']}\n"
+                custom_headers = ["City", "Country", "Number of Data Centers"]
+                table = self.format_as_markdown_table(results, headers=custom_headers)
+                response += table
                 return response
             
             # How many data centers are in each country?
@@ -170,10 +193,20 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find any data centers in our system."
                 
+                # Format data for table display
+                formatted_results = []
+                for dc in results:
+                    formatted_dc = {
+                        'Data Center': dc['name'],
+                        'City': dc['city'],
+                        'State': dc['state'] if dc['state'] else '-',
+                        'Country': dc['country']
+                    }
+                    formatted_results.append(formatted_dc)
+                
                 response = "Here are all our data centers with their locations:\n\n"
-                for i, dc in enumerate(results, 1):
-                    state_info = f", {dc['state']}" if dc['state'] else ""
-                    response += f"{i}. {dc['name']} - {dc['city']}{state_info}, {dc['country']}\n"
+                table = self.format_as_markdown_table(formatted_results)
+                response += table
                 return response
             
             # =================== Rack & Server Questions ===================
@@ -284,9 +317,11 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find information about network device counts in our data centers."
                 
+                # Format as a table for better display
                 response = "Here is the number of network devices in each data center:\n\n"
-                for i, res in enumerate(results, 1):
-                    response += f"{i}. {res['data_center']}: {res['device_count']} device(s)\n"
+                custom_headers = ["Data Center", "Number of Devices"]
+                table = self.format_as_markdown_table(results, headers=custom_headers)
+                response += table
                 return response
             
             # Find all IP addresses of network devices in 'London'
@@ -343,10 +378,18 @@ class DataCenterChatbot:
                 if not results:
                     return "I couldn't find any maintenance tasks in our system."
                 
-                response = "Here is the count of maintenance tasks by entity type:\n\n"
+                # Format data for table display
+                formatted_results = []
                 for res in results:
                     entity_type = "Servers" if res['entity_type'] == 'server' else "Network Devices"
-                    response += f"{entity_type}: {res['maintenance_count']} task(s)\n"
+                    formatted_results.append({
+                        'Entity Type': entity_type,
+                        'Maintenance Count': res['maintenance_count']
+                    })
+                
+                response = "Here is the count of maintenance tasks by entity type:\n\n"
+                table = self.format_as_markdown_table(formatted_results)
+                response += table
                 return response
             
             # Which servers had maintenance in 2023?
