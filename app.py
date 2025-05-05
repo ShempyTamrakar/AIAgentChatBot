@@ -562,10 +562,20 @@ class DataCenterChatbot:
                     """, (f"%{city}%",))
                     
                     if results:
+                        # Prepare data for table format
+                        table_data = []
+                        for dc in results:
+                            state_info = f"{dc['state']}" if dc['state'] else "-"
+                            table_data.append({
+                                'Name': dc['name'],
+                                'City': dc['city'],
+                                'State': state_info,
+                                'Country': dc['country']
+                            })
+                        
                         response = f"Data centers in {city.title()}:\n\n"
-                        for i, dc in enumerate(results, 1):
-                            state_info = f", {dc['state']}" if dc['state'] else ""
-                            response += f"{i}. {dc['name']} Data Center in {dc['city']}{state_info}, {dc['country']}\n"
+                        # Format as a well-structured table
+                        response += self.format_as_markdown_table(table_data)
                         
                         # If only one result, add rack counts
                         if len(results) == 1:
@@ -1148,6 +1158,11 @@ def clear_history():
 def serve_static_images(filename):
     """Serve static images."""
     return send_from_directory(os.path.join(app.root_path, 'static', 'images'), filename)
+
+@app.route('/static/css/<path:filename>')
+def serve_static_css(filename):
+    """Serve static CSS files."""
+    return send_from_directory(os.path.join(app.root_path, 'static', 'css'), filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
